@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0a0a0f">
+    <title>My Planner - Smart Weekly Planner</title>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="MyPlanner.png">
+    <link rel="shortcut icon" type="image/png" href="MyPlanner.png">
+    
+    <!-- Apple Touch Icon -->
+    <link rel="apple-touch-icon" href="MyPlanner.png">
+    <meta name="apple-mobile-web-app-title" content="My Planner">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Onboarding Modal -->
+    <div id="onboarding-modal" class="modal">
+        <div class="modal-content onboarding">
+            <div class="onboarding-icon"><img src="MyPlanner.png" alt="My Planner" style="width: 80px; height: 80px;"></div>
+            <h2>Benvenuto in My Planner</h2>
+            <p>Il tuo planner settimanale intelligente che impara dalle tue abitudini.</p>
+            <div class="onboarding-features">
+                <div class="feature">
+                    <span class="feature-icon">✨</span>
+                    <span>Crea task e trascinali nella griglia</span>
+                </div>
+                <div class="feature">
+                    <span class="feature-icon">🧠</span>
+                    <span>L'app impara i tuoi pattern</span>
+                </div>
+                <div class="feature">
+                    <span class="feature-icon">💡</span>
+                    <span>Ricevi suggerimenti di ottimizzazione</span>
+                </div>
+            </div>
+            <div class="onboarding-actions">
+                <button id="import-existing" class="btn btn-secondary">Importa backup esistente</button>
+                <button id="start-fresh" class="btn btn-primary">Inizia da zero</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Task Creation Modal -->
+    <div id="task-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Nuovo Task</h3>
+                <button class="modal-close" id="close-task-modal">&times;</button>
+            </div>
+            <form id="task-form">
+                <div class="form-group">
+                    <label for="task-name">Nome task</label>
+                    <input type="text" id="task-name" placeholder="Es. Palestra, Riunione..." required maxlength="30">
+                </div>
+                <div class="form-group">
+                    <label for="task-category">Categoria</label>
+                    <div class="category-selector">
+                        <button type="button" class="category-btn" data-category="work">
+                            <span class="cat-icon">💼</span> Lavoro
+                        </button>
+                        <button type="button" class="category-btn" data-category="health">
+                            <span class="cat-icon">🏃</span> Salute
+                        </button>
+                        <button type="button" class="category-btn" data-category="home">
+                            <span class="cat-icon">🏠</span> Casa
+                        </button>
+                        <button type="button" class="category-btn" data-category="personal">
+                            <span class="cat-icon">⭐</span> Personale
+                        </button>
+                        <button type="button" class="category-btn" data-category="social">
+                            <span class="cat-icon">👥</span> Sociale
+                        </button>
+                        <button type="button" class="category-btn" data-category="other">
+                            <span class="cat-icon">📌</span> Altro
+                        </button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="task-duration">Durata predefinita</label>
+                    <select id="task-duration">
+                        <option value="30">30 minuti</option>
+                        <option value="60" selected>1 ora</option>
+                        <option value="90">1 ora 30 min</option>
+                        <option value="120">2 ore</option>
+                        <option value="180">3 ore</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary btn-full">Crea Task</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Task Detail Modal -->
+    <div id="detail-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="detail-title">Dettagli Task</h3>
+                <button class="modal-close" id="close-detail-modal">&times;</button>
+            </div>
+            <div id="detail-content"></div>
+            <div class="detail-time-inputs" id="detail-time-inputs">
+                <div class="time-inputs-header">
+                    <span class="time-inputs-icon">⏱️</span>
+                    <div>
+                        <p class="time-inputs-title">Quando l'hai fatto davvero?</p>
+                        <p class="time-inputs-subtitle">Modifica se diverso dal pianificato</p>
+                    </div>
+                </div>
+                <div class="time-inputs-row">
+                    <div class="time-input-group">
+                        <label for="actual-start">Inizio reale</label>
+                        <input type="time" id="actual-start">
+                    </div>
+                    <span class="time-separator">→</span>
+                    <div class="time-input-group">
+                        <label for="actual-end">Fine reale</label>
+                        <input type="time" id="actual-end">
+                    </div>
+                </div>
+                <p class="actual-duration-display" id="actual-duration-display"></p>
+            </div>
+            <div class="detail-actions">
+                <button id="mark-complete" class="btn btn-success">✓ Completato</button>
+                <button id="mark-skipped" class="btn btn-warning">Saltato</button>
+                <button id="remove-scheduled" class="btn btn-danger">Rimuovi</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Impostazioni</h3>
+                <button class="modal-close" id="close-settings-modal">&times;</button>
+            </div>
+            <div class="settings-section">
+                <h4>Aspetto</h4>
+                <div class="theme-setting">
+                    <span>Tema</span>
+                    <div class="theme-toggle">
+                        <div class="theme-switch" id="theme-switch-settings" title="Cambia tema"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="settings-section">
+                <h4>Dati</h4>
+                <button id="export-data" class="btn btn-secondary btn-full">
+                    <span>📤</span> Esporta backup JSON
+                </button>
+                <button id="import-data" class="btn btn-secondary btn-full">
+                    <span>📥</span> Importa backup JSON
+                </button>
+                <input type="file" id="import-file" accept=".json" hidden>
+            </div>
+            <div class="settings-section">
+                <h4>Dati storici</h4>
+                <div id="stats-summary"></div>
+            </div>
+            <div class="settings-section danger-zone">
+                <h4>Zona pericolosa</h4>
+                <button id="clear-all-data" class="btn btn-danger btn-full">
+                    <span>🗑️</span> Cancella tutti i dati
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Insights Panel (Mobile: Bottom Sheet) -->
+    <div id="insights-panel" class="insights-panel">
+        <div class="insights-handle"></div>
+        <div class="insights-header">
+            <h3>💡 Insights</h3>
+            <span class="insights-badge" id="insights-count">0</span>
+        </div>
+        <div class="insights-content" id="insights-content">
+            <div class="insight-empty">
+                <p>Usa l'app per qualche giorno e inizierò a darti suggerimenti personalizzati!</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-left">
+                <h1 class="logo">My<span>Planner</span></h1>
+            </div>
+            <!-- Desktop: Week navigation -->
+            <div class="header-center desktop-only">
+                <button id="prev-week" class="nav-btn">&lt;</button>
+                <span id="week-display" class="week-display"></span>
+                <button id="next-week" class="nav-btn">&gt;</button>
+                <button id="today-btn" class="btn btn-small">Oggi</button>
+            </div>
+            <!-- Mobile: Day navigation -->
+            <div class="header-center mobile-only">
+                <button id="prev-day" class="nav-btn">&lt;</button>
+                <span id="day-display" class="day-display"></span>
+                <button id="next-day" class="nav-btn">&gt;</button>
+            </div>
+            <div class="header-right">
+                <button id="suggest-routine-btn" class="icon-btn" title="Suggerisci routine">🪄</button>
+                <div class="theme-toggle">
+                    <div class="theme-switch" id="theme-switch" title="Cambia tema"></div>
+                </div>
+                <button id="insights-toggle" class="icon-btn desktop-only" title="Insights">
+                    <span>💡</span>
+                    <span class="notification-dot" id="insights-dot"></span>
+                </button>
+                <button id="settings-btn" class="icon-btn" title="Impostazioni">⚙️</button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Main Content Inner -->
+            <div class="main-content-inner">
+                <!-- Task Sidebar -->
+            <aside class="task-sidebar" id="task-sidebar">
+                <div class="sidebar-header">
+                    <h2>I miei Task</h2>
+                    <button id="add-task-btn" class="btn btn-primary btn-small">+ Nuovo</button>
+                </div>
+                <div class="task-filters">
+                    <button class="filter-btn active" data-filter="all">Tutti</button>
+                    <button class="filter-btn" data-filter="work">💼</button>
+                    <button class="filter-btn" data-filter="health">🏃</button>
+                    <button class="filter-btn" data-filter="home">🏠</button>
+                    <button class="filter-btn" data-filter="personal">⭐</button>
+                    <button class="filter-btn" data-filter="social">👥</button>
+                    <button class="filter-btn" data-filter="other">📌</button>
+                </div>
+                <div class="task-list" id="task-list">
+                    <!-- Tasks will be rendered here -->
+                </div>
+                <div class="sidebar-footer">
+                    <p class="hint">Trascina i task sulla griglia →</p>
+                </div>
+            </aside>
+
+            <!-- Weekly Grid -->
+            <section class="grid-container">
+                <div class="grid-wrapper" id="grid-wrapper">
+                    <!-- Grid Header (Days) -->
+                    <div class="grid-header" id="grid-header">
+                        <div class="time-column-header"></div>
+                        <!-- Day headers will be rendered here -->
+                    </div>
+                    <!-- Grid Body -->
+                    <div class="grid-body" id="grid-body">
+                        <!-- Time slots and cells will be rendered here -->
+                    </div>
+                </div>
+            </section>
+            </div> <!-- End main-content-inner -->
+        </main>
+
+        <!-- Mobile Overlay (for bottom sheets) -->
+        <div id="mobile-overlay" class="mobile-overlay"></div>
+
+        <!-- Mobile Bottom Bar -->
+        <nav class="mobile-bottom-bar">
+            <button class="mobile-nav-btn" id="mobile-tasks-btn">
+                <span class="nav-icon">📋</span>
+                <span class="nav-label">Task</span>
+            </button>
+            <button class="mobile-nav-btn" id="mobile-today-btn">
+                <span class="nav-icon">📅</span>
+                <span class="nav-label">Oggi</span>
+            </button>
+            <button class="mobile-nav-btn" id="mobile-add-btn">
+                <span class="nav-icon add-icon">+</span>
+                <span class="nav-label">Nuovo</span>
+            </button>
+            <button class="mobile-nav-btn" id="mobile-insights-btn">
+                <span class="nav-icon">💡</span>
+                <span class="nav-label">Insights</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="notification-bar" class="notification-bar">
+        <span id="notification-icon" class="notification-icon"></span>
+        <span id="notification-text" class="notification-text"></span>
+        <button id="notification-close" class="notification-close">×</button>
+    </div>
+
+    <!-- Custom Confirm Dialog -->
+    <div id="confirm-dialog" class="confirm-dialog">
+        <div class="confirm-dialog-content">
+            <div class="confirm-dialog-icon" id="confirm-icon">⚠️</div>
+            <h3 id="confirm-title">Conferma</h3>
+            <p id="confirm-message">Sei sicuro?</p>
+            <div class="confirm-dialog-actions">
+                <button id="confirm-cancel" class="btn btn-secondary">Annulla</button>
+                <button id="confirm-ok" class="btn btn-danger">Conferma</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="db.js"></script>
+    <script src="algorithm.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
