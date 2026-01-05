@@ -511,8 +511,16 @@ const App = {
         const dayDiff = Math.round((scheduleDate - this.currentWeekStart) / (1000 * 60 * 60 * 24));
         if (dayDiff < 0 || dayDiff >= 7) return;
 
-        // Calculate slot position
-        const [hours, minutes] = scheduled.startTime.split(':').map(Number);
+        // Determine which time to use for positioning
+        // If completed with actual times, use actual; otherwise use planned
+        const isCompleted = scheduled.status === 'completed';
+        const hasActualTimes = scheduled.actualStartTime && scheduled.actualDuration;
+        
+        const displayStartTime = (isCompleted && hasActualTimes) ? scheduled.actualStartTime : scheduled.startTime;
+        const displayDuration = (isCompleted && hasActualTimes) ? scheduled.actualDuration : scheduled.duration;
+
+        // Calculate slot position based on display time
+        const [hours, minutes] = displayStartTime.split(':').map(Number);
         let totalMinutes = hours * 60 + minutes;
         
         // Adjust for day start at 5:00
@@ -527,10 +535,27 @@ const App = {
 
         const cat = this.categories[task.category] || this.categories.other;
         const slotHeight = 40; // CSS --cell-height
-        const heightSlots = Math.ceil(scheduled.duration / this.slotDuration);
+        const heightSlots = Math.ceil(displayDuration / this.slotDuration);
+
+        // Build time display
+        const plannedEnd = this.addMinutesToTime(scheduled.startTime, scheduled.duration);
+        let timeHTML = '';
+        
+        if (isCompleted && hasActualTimes) {
+            const actualEnd = this.addMinutesToTime(scheduled.actualStartTime, scheduled.actualDuration);
+            const durationDiff = scheduled.actualDuration - scheduled.duration;
+            
+            // Show actual time prominently, planned time smaller
+            timeHTML = `
+                <div class="st-time st-actual">${scheduled.actualStartTime} - ${actualEnd} <span class="st-duration-badge ${durationDiff > 0 ? 'over' : durationDiff < 0 ? 'under' : ''}">${scheduled.actualDuration}m</span></div>
+                <div class="st-time st-planned">Piano: ${scheduled.startTime} - ${plannedEnd} (${scheduled.duration}m)</div>
+            `;
+        } else {
+            timeHTML = `<div class="st-time">${scheduled.startTime} - ${plannedEnd}</div>`;
+        }
 
         const taskEl = document.createElement('div');
-        taskEl.className = `scheduled-task ${scheduled.status || ''}`;
+        taskEl.className = `scheduled-task ${scheduled.status || ''} ${(isCompleted && hasActualTimes) ? 'has-actual' : ''}`;
         taskEl.style.cssText = `
             --task-color: ${cat.color};
             height: ${heightSlots * slotHeight - 4}px;
@@ -539,7 +564,7 @@ const App = {
         taskEl.dataset.scheduleId = scheduled.id;
         taskEl.innerHTML = `
             <div class="st-name">${cat.icon} ${this.escapeHtml(task.name)}</div>
-            <div class="st-time">${scheduled.startTime} - ${this.addMinutesToTime(scheduled.startTime, scheduled.duration)}</div>
+            ${timeHTML}
         `;
 
         taskEl.addEventListener('click', () => this.openDetailModal(scheduled));
