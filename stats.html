@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Statistiche - My Planner</title>
+    <link rel="icon" type="image/png" href="MyPlanner.png">
+    <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-tertiary: #1a1a24;
+            --bg-glass: rgba(255, 255, 255, 0.03);
+            --bg-glass-hover: rgba(255, 255, 255, 0.06);
+            --text-primary: #f0f0f5;
+            --text-secondary: #a0a0b0;
+            --text-muted: #606070;
+            --border-subtle: rgba(255, 255, 255, 0.06);
+            --border-light: rgba(255, 255, 255, 0.1);
+            --accent-primary: #6366f1;
+            --accent-secondary: #8b5cf6;
+            --accent-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --info: #3b82f6;
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 16px;
+            --radius-xl: 24px;
+            --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.3);
+            --shadow-lg: 0 10px 40px rgba(0, 0, 0, 0.4);
+            --transition-fast: 0.15s ease;
+            --transition-normal: 0.25s ease;
+            
+            --cat-work: #3b82f6;
+            --cat-health: #22c55e;
+            --cat-home: #f59e0b;
+            --cat-personal: #8b5cf6;
+            --cat-social: #ec4899;
+            --cat-other: #6b7280;
+        }
+
+        [data-theme="light"] {
+            --bg-primary: #f5f5f7;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #e8e8ec;
+            --bg-glass: rgba(0, 0, 0, 0.02);
+            --bg-glass-hover: rgba(0, 0, 0, 0.05);
+            --text-primary: #1a1a2e;
+            --text-secondary: #4a4a5a;
+            --text-muted: #8a8a9a;
+            --border-subtle: rgba(0, 0, 0, 0.06);
+            --border-light: rgba(0, 0, 0, 0.1);
+            --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 20px;
+            padding-bottom: 40px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 32px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .back-btn {
+            background: var(--bg-glass);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-primary);
+            width: 44px;
+            height: 44px;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--transition-fast);
+            text-decoration: none;
+        }
+
+        .back-btn:hover {
+            background: var(--bg-glass-hover);
+            border-color: var(--border-light);
+        }
+
+        .header-content {
+            flex: 1;
+        }
+
+        .header-content h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .header-content p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .theme-btn {
+            background: var(--bg-glass);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-primary);
+            width: 44px;
+            height: 44px;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--transition-fast);
+        }
+
+        .theme-btn:hover {
+            background: var(--bg-glass-hover);
+            border-color: var(--border-light);
+        }
+
+        /* Summary Cards */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .summary-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+            text-align: center;
+        }
+
+        .summary-card .icon {
+            font-size: 2rem;
+            margin-bottom: 8px;
+        }
+
+        .summary-card .value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .summary-card .label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Sections */
+        .section {
+            margin-bottom: 32px;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .section-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--accent-gradient);
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .section-subtitle {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        /* Pattern Cards */
+        .pattern-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .pattern-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 16px;
+            transition: all var(--transition-fast);
+        }
+
+        .pattern-card:hover {
+            border-color: var(--border-light);
+        }
+
+        .pattern-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .pattern-task-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            background: var(--bg-glass);
+        }
+
+        .pattern-task-name {
+            font-weight: 600;
+            flex: 1;
+        }
+
+        .pattern-confidence {
+            font-size: 0.75rem;
+            padding: 4px 8px;
+            background: var(--bg-glass);
+            border-radius: var(--radius-sm);
+            color: var(--text-muted);
+        }
+
+        .pattern-confidence.high {
+            background: rgba(34, 197, 94, 0.15);
+            color: var(--success);
+        }
+
+        .pattern-confidence.medium {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--warning);
+        }
+
+        .pattern-content {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .pattern-content strong {
+            color: var(--text-primary);
+        }
+
+        .pattern-detail {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid var(--border-subtle);
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .pattern-detail-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* Day badges */
+        .day-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 10px;
+        }
+
+        .day-badge {
+            padding: 4px 10px;
+            background: var(--bg-glass);
+            border-radius: var(--radius-sm);
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .day-badge.active {
+            background: var(--accent-gradient);
+            color: white;
+        }
+
+        /* Progress bars */
+        .progress-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        .progress-label {
+            width: 80px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .progress-bar-bg {
+            flex: 1;
+            height: 8px;
+            background: var(--bg-glass);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width var(--transition-normal);
+        }
+
+        .progress-bar-fill.success { background: var(--success); }
+        .progress-bar-fill.warning { background: var(--warning); }
+        .progress-bar-fill.danger { background: var(--danger); }
+        .progress-bar-fill.info { background: var(--info); }
+        .progress-bar-fill.accent { background: var(--accent-gradient); }
+
+        .progress-value {
+            width: 45px;
+            text-align: right;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-muted);
+        }
+
+        .empty-state .icon {
+            font-size: 3rem;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .empty-state h3 {
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .empty-state p {
+            max-width: 300px;
+            margin: 0 auto;
+            line-height: 1.5;
+        }
+
+        /* Sequence arrow */
+        .sequence-flow {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 8px;
+        }
+
+        .sequence-task {
+            padding: 8px 12px;
+            background: var(--bg-glass);
+            border-radius: var(--radius-sm);
+            font-size: 0.9rem;
+        }
+
+        .sequence-arrow {
+            color: var(--accent-primary);
+            font-size: 1.2rem;
+        }
+
+        .sequence-gap {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        /* Duration comparison */
+        .duration-compare {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-top: 10px;
+        }
+
+        .duration-box {
+            flex: 1;
+            padding: 12px;
+            background: var(--bg-glass);
+            border-radius: var(--radius-sm);
+            text-align: center;
+        }
+
+        .duration-box .value {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .duration-box .label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .duration-box.over .value { color: var(--warning); }
+        .duration-box.under .value { color: var(--success); }
+
+        .duration-arrow {
+            font-size: 1.5rem;
+            color: var(--text-muted);
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            body {
+                padding: 16px;
+            }
+
+            .header {
+                flex-wrap: wrap;
+            }
+
+            .header-content h1 {
+                font-size: 1.3rem;
+            }
+
+            .summary-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .summary-card .value {
+                font-size: 1.5rem;
+            }
+
+            .pattern-header {
+                flex-wrap: wrap;
+            }
+
+            .duration-compare {
+                flex-direction: column;
+            }
+
+            .duration-arrow {
+                transform: rotate(90deg);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="content">
+            <div class="empty-state">
+                <div class="icon">⏳</div>
+                <p>Caricamento...</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="db.js"></script>
+    <script>
+        const StatsApp = {
+            tasks: [],
+            history: [],
+            patterns: [],
+            
+            categories: {
+                work: { name: 'Lavoro', icon: '💼', color: 'var(--cat-work)' },
+                health: { name: 'Salute', icon: '💪', color: 'var(--cat-health)' },
+                home: { name: 'Casa', icon: '🏠', color: 'var(--cat-home)' },
+                personal: { name: 'Personale', icon: '👤', color: 'var(--cat-personal)' },
+                social: { name: 'Sociale', icon: '👥', color: 'var(--cat-social)' },
+                other: { name: 'Altro', icon: '📌', color: 'var(--cat-other)' }
+            },
+
+            dayNames: ['Dom', 'Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab'],
+
+            async init() {
+                // Load theme
+                const theme = localStorage.getItem('flowday-theme') || 'dark';
+                document.documentElement.setAttribute('data-theme', theme);
+
+                // Initialize DB and load data
+                await DB.init();
+                await this.loadData();
+                this.render();
+            },
+
+            async loadData() {
+                this.tasks = await DB.getAllTasks();
+                this.history = await DB.getAllHistory();
+                this.patterns = await DB.getAllPatterns();
+            },
+
+            getTask(taskId) {
+                return this.tasks.find(t => t.id === taskId);
+            },
+
+            getCategory(cat) {
+                return this.categories[cat] || this.categories.other;
+            },
+
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            },
+
+            toggleTheme() {
+                const current = document.documentElement.getAttribute('data-theme');
+                const newTheme = current === 'light' ? 'dark' : 'light';
+                document.documentElement.setAttribute('data-theme', newTheme);
+                localStorage.setItem('flowday-theme', newTheme);
+                document.getElementById('theme-icon').textContent = newTheme === 'light' ? '🌙' : '☀️';
+            },
+
+            getConfidenceLabel(confidence) {
+                if (confidence >= 0.7) return { label: 'Alta', class: 'high' };
+                if (confidence >= 0.4) return { label: 'Media', class: 'medium' };
+                return { label: 'Bassa', class: '' };
+            },
+
+            render() {
+                const completed = this.history.filter(h => h.status === 'completed').length;
+                const skipped = this.history.filter(h => h.status === 'skipped').length;
+                const total = completed + skipped;
+                const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+                const timePatterns = this.patterns.filter(p => p.type === 'time');
+                const timeDayPatterns = this.patterns.filter(p => p.type === 'time_day');
+                const durationPatterns = this.patterns.filter(p => p.type === 'duration');
+                const frequencyPatterns = this.patterns.filter(p => p.type === 'frequency');
+                const sequencePatterns = this.patterns.filter(p => p.type === 'sequence');
+
+                const theme = document.documentElement.getAttribute('data-theme');
+
+                document.getElementById('content').innerHTML = `
+                    <div class="header">
+                        <a href="index.html" class="back-btn">←</a>
+                        <div class="header-content">
+                            <h1>📊 Le tue Statistiche</h1>
+                            <p>Pattern e abitudini rilevate dall'algoritmo</p>
+                        </div>
+                        <button class="theme-btn" onclick="StatsApp.toggleTheme()" title="Cambia tema">
+                            <span id="theme-icon">${theme === 'light' ? '🌙' : '☀️'}</span>
+                        </button>
+                    </div>
+
+                    <!-- Summary -->
+                    <div class="summary-grid">
+                        <div class="summary-card">
+                            <div class="icon">✅</div>
+                            <div class="value">${completed}</div>
+                            <div class="label">Completati</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="icon">⏭️</div>
+                            <div class="value">${skipped}</div>
+                            <div class="label">Saltati</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="icon">📈</div>
+                            <div class="value">${completionRate}%</div>
+                            <div class="label">Tasso successo</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="icon">🧠</div>
+                            <div class="value">${this.patterns.length}</div>
+                            <div class="label">Pattern rilevati</div>
+                        </div>
+                    </div>
+
+                    <!-- Time Patterns -->
+                    <div class="section">
+                        <div class="section-header">
+                            <div class="section-icon">⏰</div>
+                            <div>
+                                <div class="section-title">Pattern Temporali</div>
+                                <div class="section-subtitle">A che ora fai solitamente ogni task</div>
+                            </div>
+                        </div>
+                        <div class="pattern-list">
+                            ${this.renderTimePatterns(timePatterns, timeDayPatterns)}
+                        </div>
+                    </div>
+
+                    <!-- Duration Patterns -->
+                    <div class="section">
+                        <div class="section-header">
+                            <div class="section-icon">⏱️</div>
+                            <div>
+                                <div class="section-title">Pattern Durate</div>
+                                <div class="section-subtitle">Tempo pianificato vs tempo effettivo</div>
+                            </div>
+                        </div>
+                        <div class="pattern-list">
+                            ${this.renderDurationPatterns(durationPatterns)}
+                        </div>
+                    </div>
+
+                    <!-- Frequency Patterns -->
+                    <div class="section">
+                        <div class="section-header">
+                            <div class="section-icon">📅</div>
+                            <div>
+                                <div class="section-title">Pattern Frequenza</div>
+                                <div class="section-subtitle">Quante volte e in quali giorni</div>
+                            </div>
+                        </div>
+                        <div class="pattern-list">
+                            ${this.renderFrequencyPatterns(frequencyPatterns)}
+                        </div>
+                    </div>
+
+                    <!-- Sequence Patterns -->
+                    <div class="section">
+                        <div class="section-header">
+                            <div class="section-icon">🔗</div>
+                            <div>
+                                <div class="section-title">Pattern Sequenze</div>
+                                <div class="section-subtitle">Quali task fai di seguito</div>
+                            </div>
+                        </div>
+                        <div class="pattern-list">
+                            ${this.renderSequencePatterns(sequencePatterns)}
+                        </div>
+                    </div>
+                `;
+            },
+
+            renderTimePatterns(timePatterns, timeDayPatterns) {
+                if (timePatterns.length === 0 && timeDayPatterns.length === 0) {
+                    return this.renderEmptyState('Nessun pattern temporale rilevato', 'Completa più task per vedere a che ora li fai di solito');
+                }
+
+                let html = '';
+
+                for (const pattern of timePatterns) {
+                    const task = this.getTask(pattern.taskId);
+                    if (!task) continue;
+                    const cat = this.getCategory(task.category);
+                    const conf = this.getConfidenceLabel(pattern.confidence || 0.5);
+                    const stdDev = pattern.variance || pattern.standardDeviation || 0;
+
+                    // Find day-specific patterns for this task
+                    const dayPatterns = timeDayPatterns.filter(p => p.taskId === pattern.taskId);
+
+                    html += `
+                        <div class="pattern-card">
+                            <div class="pattern-header">
+                                <div class="pattern-task-icon" style="background: ${cat.color}20; color: ${cat.color}">
+                                    ${cat.icon}
+                                </div>
+                                <div class="pattern-task-name">${this.escapeHtml(task.name)}</div>
+                                <div class="pattern-confidence ${conf.class}">Affidabilità: ${conf.label}</div>
+                            </div>
+                            <div class="pattern-content">
+                                Di solito fai questo task alle <strong>${pattern.averageTime}</strong>
+                                ${stdDev ? `<br><small>(± ${Math.round(stdDev)} minuti di variazione)</small>` : ''}
+                            </div>
+                            ${dayPatterns.length > 0 ? `
+                                <div class="pattern-detail">
+                                    <span>📆 Orari per giorno:</span>
+                                    ${dayPatterns.map(dp => `<span class="day-badge">${this.dayNames[dp.dayOfWeek]}: ${dp.averageTime}</span>`).join('')}
+                                </div>
+                            ` : ''}
+                            <div class="pattern-detail">
+                                <span class="pattern-detail-item">📊 Basato su ${pattern.sampleSize || '?'} completamenti</span>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                return html;
+            },
+
+            renderDurationPatterns(durationPatterns) {
+                if (durationPatterns.length === 0) {
+                    return this.renderEmptyState('Nessun pattern durata rilevato', 'Inserisci gli orari effettivi quando completi i task per vedere le differenze');
+                }
+
+                let html = '';
+
+                for (const pattern of durationPatterns) {
+                    const task = this.getTask(pattern.taskId);
+                    if (!task) continue;
+                    const cat = this.getCategory(task.category);
+                    
+                    const avgPlanned = pattern.averagePlanned || pattern.avgPlanned || 0;
+                    const avgActual = pattern.averageActual || pattern.avgActual || 0;
+                    const difference = pattern.difference || 0;
+                    const percentDiff = pattern.percentDifference || pattern.percentDiff || 0;
+                    
+                    const isOver = difference > 0;
+                    const isUnder = difference < 0;
+
+                    html += `
+                        <div class="pattern-card">
+                            <div class="pattern-header">
+                                <div class="pattern-task-icon" style="background: ${cat.color}20; color: ${cat.color}">
+                                    ${cat.icon}
+                                </div>
+                                <div class="pattern-task-name">${this.escapeHtml(task.name)}</div>
+                                <div class="pattern-confidence ${isOver ? '' : 'high'}">${isOver ? '⚠️ Sottostimato' : '✓ Accurato'}</div>
+                            </div>
+                            <div class="duration-compare">
+                                <div class="duration-box">
+                                    <div class="value">${avgPlanned} min</div>
+                                    <div class="label">Pianificato</div>
+                                </div>
+                                <div class="duration-arrow">→</div>
+                                <div class="duration-box ${isOver ? 'over' : isUnder ? 'under' : ''}">
+                                    <div class="value">${avgActual} min</div>
+                                    <div class="label">Effettivo</div>
+                                </div>
+                            </div>
+                            <div class="pattern-content" style="margin-top: 12px;">
+                                ${isOver 
+                                    ? `Impieghi in media <strong>${difference} minuti in più</strong> del previsto (${percentDiff}% in più)`
+                                    : isUnder 
+                                        ? `Sei più veloce! Impieghi <strong>${Math.abs(difference)} minuti in meno</strong> del previsto`
+                                        : 'Le tue stime sono accurate!'
+                                }
+                            </div>
+                            <div class="pattern-detail">
+                                <span class="pattern-detail-item">📊 Basato su ${pattern.sampleSize || '?'} completamenti</span>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                return html;
+            },
+
+            renderFrequencyPatterns(frequencyPatterns) {
+                if (frequencyPatterns.length === 0) {
+                    return this.renderEmptyState('Nessun pattern frequenza rilevato', 'Usa l\'app per almeno 2 settimane per vedere le tue abitudini settimanali');
+                }
+
+                let html = '';
+
+                for (const pattern of frequencyPatterns) {
+                    const task = this.getTask(pattern.taskId);
+                    if (!task) continue;
+                    const cat = this.getCategory(task.category);
+
+                    const preferredDays = pattern.preferredDays || [];
+                    const weeklyAvg = pattern.timesPerWeek || pattern.weeklyAverage || 0;
+                    const totalCount = pattern.totalOccurrences || pattern.totalCompletions || 0;
+
+                    html += `
+                        <div class="pattern-card">
+                            <div class="pattern-header">
+                                <div class="pattern-task-icon" style="background: ${cat.color}20; color: ${cat.color}">
+                                    ${cat.icon}
+                                </div>
+                                <div class="pattern-task-name">${this.escapeHtml(task.name)}</div>
+                            </div>
+                            <div class="pattern-content">
+                                Fai questo task in media <strong>${weeklyAvg.toFixed ? weeklyAvg.toFixed(1) : weeklyAvg} volte a settimana</strong>
+                            </div>
+                            <div class="day-badges">
+                                ${this.dayNames.map((name, idx) => {
+                                    const dayData = preferredDays.find(d => d.day === idx);
+                                    const isActive = dayData && dayData.percentage >= 15;
+                                    return `<span class="day-badge ${isActive ? 'active' : ''}">${name}${isActive ? ` (${Math.round(dayData.percentage)}%)` : ''}</span>`;
+                                }).join('')}
+                            </div>
+                            <div class="pattern-detail">
+                                <span class="pattern-detail-item">📊 Totale: ${totalCount} completamenti</span>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                return html;
+            },
+
+            renderSequencePatterns(sequencePatterns) {
+                if (sequencePatterns.length === 0) {
+                    return this.renderEmptyState('Nessuna sequenza rilevata', 'Completa task consecutivi per vedere quali fai di seguito');
+                }
+
+                let html = '';
+
+                for (const pattern of sequencePatterns) {
+                    const firstTaskId = pattern.fromTaskId || pattern.firstTaskId;
+                    const secondTaskId = pattern.toTaskId || pattern.secondTaskId;
+                    
+                    const firstTask = this.getTask(firstTaskId);
+                    const secondTask = this.getTask(secondTaskId);
+                    if (!firstTask || !secondTask) continue;
+                    
+                    const cat1 = this.getCategory(firstTask.category);
+                    const cat2 = this.getCategory(secondTask.category);
+                    const conf = this.getConfidenceLabel(pattern.confidence || 0.5);
+                    const count = pattern.count || pattern.occurrences || 0;
+                    const avgGap = pattern.averageGap || pattern.avgGapMinutes;
+
+                    html += `
+                        <div class="pattern-card">
+                            <div class="pattern-header">
+                                <div class="pattern-task-name">Sequenza rilevata</div>
+                                <div class="pattern-confidence ${conf.class}">Affidabilità: ${conf.label}</div>
+                            </div>
+                            <div class="sequence-flow">
+                                <div class="sequence-task">
+                                    <span>${cat1.icon}</span> ${this.escapeHtml(firstTask.name)}
+                                </div>
+                                <div class="sequence-arrow">→</div>
+                                <div class="sequence-task">
+                                    <span>${cat2.icon}</span> ${this.escapeHtml(secondTask.name)}
+                                </div>
+                            </div>
+                            <div class="pattern-content" style="margin-top: 12px;">
+                                Dopo <strong>${this.escapeHtml(firstTask.name)}</strong> fai quasi sempre 
+                                <strong>${this.escapeHtml(secondTask.name)}</strong>
+                                ${avgGap !== undefined && avgGap !== null ? ` (dopo circa ${Math.round(avgGap)} minuti)` : ''}
+                            </div>
+                            <div class="pattern-detail">
+                                <span class="pattern-detail-item">🔄 ${count} volte</span>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                return html;
+            },
+
+            renderEmptyState(title, message) {
+                return `
+                    <div class="pattern-card">
+                        <div class="empty-state" style="padding: 30px;">
+                            <div class="icon" style="font-size: 2rem;">📭</div>
+                            <h3>${title}</h3>
+                            <p>${message}</p>
+                        </div>
+                    </div>
+                `;
+            }
+        };
+
+        // Initialize when DOM is ready
+        document.addEventListener('DOMContentLoaded', () => StatsApp.init());
+    </script>
+</body>
+</html>
