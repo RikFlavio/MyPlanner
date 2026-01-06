@@ -19,6 +19,8 @@ const App = {
     justDragged: false, // Prevent click after drag
     selectedScheduledTask: null,
     pendingCellSchedule: null, // For mobile tap-to-schedule flow
+    selectedChecklistTask: null, // For checklist modal
+    isDraggingTask: false, // To prevent click after drag
 
     // Category config
     categories: {
@@ -171,6 +173,13 @@ const App = {
         document.getElementById('import-data')?.addEventListener('click', () => document.getElementById('import-file').click());
         document.getElementById('import-file')?.addEventListener('change', (e) => this.importData(e));
         document.getElementById('clear-all-data')?.addEventListener('click', () => this.clearAllData());
+
+        // Checklist
+        document.getElementById('close-checklist-modal')?.addEventListener('click', () => this.closeChecklistModal());
+        document.getElementById('checklist-add-btn')?.addEventListener('click', () => this.addChecklistItem());
+        document.getElementById('checklist-new-item')?.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') this.addChecklistItem();
+        });
 
         // Insights
         document.getElementById('insights-toggle')?.addEventListener('click', () => this.toggleInsightsPanel());
@@ -452,33 +461,63 @@ const App = {
 
         taskList.innerHTML = filteredTasks.map(task => {
             const cat = this.categories[task.category] || this.categories.other;
+            const checklist = task.checklist || [];
+            const completedCount = checklist.filter(item => item.completed).length;
+            const totalCount = checklist.length;
+            
+            let badgeClass = '';
+            let badgeText = '';
+            if (totalCount > 0) {
+                if (completedCount === totalCount) {
+                    badgeClass = 'all-done';
+                    badgeText = `✓ ${totalCount}`;
+                } else {
+                    badgeClass = 'has-items';
+                    badgeText = `${completedCount}/${totalCount}`;
+                }
+            }
+            
             return `
                 <div class="task-item" 
                      draggable="true" 
                      data-task-id="${task.id}"
                      style="--task-color: ${cat.color}"
+                     onclick="App.onTaskItemClick(event, '${task.id}')"
                      ondragstart="App.handleDragStart(event)"
                      ondragend="App.handleDragEnd(event)">
                     <span class="task-icon">${cat.icon}</span>
                     <span class="task-name">${this.escapeHtml(task.name)}</span>
+                    ${totalCount > 0 ? `<span class="task-checklist-badge ${badgeClass}">${badgeText}</span>` : ''}
                     <span class="task-duration">${task.defaultDuration}m</span>
-                    <button class="task-delete" onclick="App.deleteTask('${task.id}', event)">×</button>
+                    <button class="task-delete" onclick="App.deleteTask('${task.id}', event); event.stopPropagation();">×</button>
                 </div>
             `;
         }).join('');
 
-        // Add touch events for mobile drag
+        // Add touch events for mobile drag and click for checklist
         taskList.querySelectorAll('.task-item').forEach(item => {
             item.addEventListener('touchstart', (e) => this.handleTouchStart(e));
             item.addEventListener('touchmove', (e) => this.handleTouchMove(e));
             item.addEventListener('touchend', (e) => this.handleTouchEnd(e));
             
-            // Mobile tap to schedule on pending cell
+            // Click handler for both mobile and desktop
             item.addEventListener('click', (e) => this.handleTaskItemClick(e, item));
+            
+            // Track if we're dragging to prevent click
+            item.addEventListener('dragstart', () => { this.isDraggingTask = true; });
+            item.addEventListener('dragend', () => { 
+                setTimeout(() => { this.isDraggingTask = false; }, 100);
+            });
         });
     },
 
     handleTaskItemClick(event, item) {
+        // Don't open checklist if clicking delete button
+        if (event.target.classList.contains('task-delete')) return;
+        
+        // Don't open if we just finished dragging
+        if (this.isDraggingTask) return;
+        
         // If there's a pending cell to schedule on (mobile flow)
         if (this.isMobile && this.pendingCellSchedule) {
             event.preventDefault();
@@ -492,8 +531,43 @@ const App = {
                 this.pendingCellSchedule = null;
                 this.closeMobileSheets();
             }
+            return;
+        }
+        
+        // Otherwise, open checklist modal
+        const taskId = item.dataset.taskId;
+        const task = this.tasks.find(t => t.id === taskId);
+        if (task) {
+            this.openChecklistModal(task);
         }
     },
+
+    // Direct onclick handler from HTML
+    onTaskItemClick(event, taskId) {
+        // Don't open checklist if clicking delete button
+        if (event.target.classList.contains('task-delete')) return;
+        
+        // Don't open if we just finished dragging
+        if (this.isDraggingTask) return;
+        
+        // If there's a pending cell to schedule on (mobile flow)
+        if (this.isMobile && this.pendingCellSchedule) {
+            const task = this.tasks.find(t => t.id === taskId);
+            if (task) {
+                this.scheduleTaskToCell(task, this.pendingCellSchedule);
+                this.pendingCellSchedule = null;
+                this.closeMobileSheets();
+            }
+            return;
+        }
+        
+        // Open checklist page
+        window.location.href = `checklist.html?taskId=${taskId}`;
+    },
+
+    // =====================================
+    // Scheduled Tasks Rendering
+    // =====================================
 
     renderScheduledTasks() {
         // Remove existing scheduled tasks from grid

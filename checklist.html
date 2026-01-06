@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checklist - My Planner</title>
+    <link rel="icon" type="image/png" href="MyPlanner.png">
+    <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-glass: rgba(255, 255, 255, 0.03);
+            --bg-glass-hover: rgba(255, 255, 255, 0.06);
+            --text-primary: #f0f0f5;
+            --text-secondary: #a0a0b0;
+            --text-muted: #606070;
+            --border-subtle: rgba(255, 255, 255, 0.06);
+            --border-light: rgba(255, 255, 255, 0.1);
+            --accent-primary: #6366f1;
+            --accent-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 16px;
+            --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.3);
+            --transition-fast: 0.15s ease;
+            --transition-normal: 0.25s ease;
+            
+            --cat-work: #3b82f6;
+            --cat-health: #22c55e;
+            --cat-home: #f59e0b;
+            --cat-personal: #8b5cf6;
+            --cat-social: #ec4899;
+            --cat-other: #6b7280;
+        }
+
+        [data-theme="light"] {
+            --bg-primary: #f5f5f7;
+            --bg-secondary: #ffffff;
+            --bg-glass: rgba(0, 0, 0, 0.02);
+            --bg-glass-hover: rgba(0, 0, 0, 0.05);
+            --text-primary: #1a1a2e;
+            --text-secondary: #4a4a5a;
+            --text-muted: #8a8a9a;
+            --border-subtle: rgba(0, 0, 0, 0.06);
+            --border-light: rgba(0, 0, 0, 0.1);
+            --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .back-btn {
+            background: var(--bg-glass);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-primary);
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--transition-fast);
+            text-decoration: none;
+        }
+
+        .back-btn:hover {
+            background: var(--bg-glass-hover);
+            border-color: var(--border-light);
+        }
+
+        .theme-btn {
+            background: var(--bg-glass);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-primary);
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--transition-fast);
+        }
+
+        .theme-btn:hover {
+            background: var(--bg-glass-hover);
+            border-color: var(--border-light);
+        }
+
+        .task-info {
+            flex: 1;
+        }
+
+        .task-name {
+            font-size: 1.3rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .task-category {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .checklist-add {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .checklist-add input {
+            flex: 1;
+            padding: 14px 16px;
+            background: var(--bg-glass);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-md);
+            color: var(--text-primary);
+            font-size: 1rem;
+        }
+
+        .checklist-add input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+        }
+
+        .checklist-add input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .btn {
+            padding: 14px 20px;
+            background: var(--accent-gradient);
+            border: none;
+            border-radius: var(--radius-md);
+            color: white;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .btn:hover {
+            transform: scale(1.02);
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .checklist-items {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .checklist-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 16px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            transition: all var(--transition-fast);
+        }
+
+        .checklist-item:hover {
+            border-color: var(--border-light);
+        }
+
+        .checklist-item.completed {
+            opacity: 0.6;
+            background: rgba(34, 197, 94, 0.1);
+        }
+
+        .checklist-item.completed .item-text {
+            text-decoration: line-through;
+            color: var(--text-muted);
+        }
+
+        .checkbox {
+            width: 24px;
+            height: 24px;
+            border: 2px solid var(--border-light);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: all var(--transition-fast);
+            background: transparent;
+        }
+
+        .checkbox:hover {
+            border-color: var(--accent-primary);
+        }
+
+        .checklist-item.completed .checkbox {
+            background: var(--success);
+            border-color: var(--success);
+            color: white;
+        }
+
+        .checkbox::after {
+            content: '';
+            display: none;
+        }
+
+        .checklist-item.completed .checkbox::after {
+            content: '✓';
+            display: block;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+
+        .item-text {
+            flex: 1;
+            font-size: 1rem;
+            color: var(--text-primary);
+            word-break: break-word;
+        }
+
+        .item-delete {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 6px;
+            font-size: 1.2rem;
+            opacity: 0.5;
+            transition: all var(--transition-fast);
+            border-radius: var(--radius-sm);
+        }
+
+        .checklist-item:hover .item-delete {
+            opacity: 1;
+        }
+
+        .item-delete:hover {
+            color: var(--danger);
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted);
+        }
+
+        .empty-state p {
+            margin-bottom: 8px;
+        }
+
+        .progress-section {
+            padding: 16px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .progress-bar {
+            flex: 1;
+            height: 10px;
+            background: var(--bg-glass);
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--accent-gradient);
+            border-radius: 5px;
+            transition: width var(--transition-normal);
+            width: 0%;
+        }
+
+        .progress-text {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            font-weight: 500;
+        }
+
+        .error-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-muted);
+        }
+
+        .error-state h2 {
+            color: var(--danger);
+            margin-bottom: 12px;
+        }
+
+        @media (max-width: 500px) {
+            body {
+                padding: 16px;
+            }
+
+            .task-name {
+                font-size: 1.1rem;
+            }
+
+            .checklist-add input {
+                padding: 12px 14px;
+            }
+
+            .btn {
+                padding: 12px 16px;
+            }
+
+            .checklist-item {
+                padding: 12px 14px;
+            }
+
+            .item-delete {
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="content">
+            <!-- Content will be loaded here -->
+            <div class="empty-state">
+                <p>Caricamento...</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="db.js"></script>
+    <script>
+        const ChecklistApp = {
+            task: null,
+            taskId: null,
+
+            async init() {
+                // Get task ID from URL
+                const params = new URLSearchParams(window.location.search);
+                this.taskId = params.get('taskId');
+
+                if (!this.taskId) {
+                    this.showError('Nessun task specificato');
+                    return;
+                }
+
+                // Load theme
+                const theme = localStorage.getItem('flowday-theme') || 'dark';
+                document.documentElement.setAttribute('data-theme', theme);
+
+                // Initialize DB and load task
+                await DB.init();
+                await this.loadTask();
+            },
+
+            async loadTask() {
+                try {
+                    const tasks = await DB.getAllTasks();
+                    this.task = tasks.find(t => t.id === this.taskId);
+
+                    if (!this.task) {
+                        this.showError('Task non trovato');
+                        return;
+                    }
+
+                    this.render();
+                } catch (error) {
+                    console.error('Error loading task:', error);
+                    this.showError('Errore nel caricamento');
+                }
+            },
+
+            showError(message) {
+                document.getElementById('content').innerHTML = `
+                    <div class="error-state">
+                        <h2>⚠️</h2>
+                        <p>${message}</p>
+                        <br>
+                        <a href="index.html" class="btn">Torna al Planner</a>
+                    </div>
+                `;
+            },
+
+            getCategory(cat) {
+                const categories = {
+                    work: { name: 'Lavoro', icon: '💼', color: 'var(--cat-work)' },
+                    health: { name: 'Salute', icon: '💪', color: 'var(--cat-health)' },
+                    home: { name: 'Casa', icon: '🏠', color: 'var(--cat-home)' },
+                    personal: { name: 'Personale', icon: '👤', color: 'var(--cat-personal)' },
+                    social: { name: 'Sociale', icon: '👥', color: 'var(--cat-social)' },
+                    other: { name: 'Altro', icon: '📌', color: 'var(--cat-other)' }
+                };
+                return categories[cat] || categories.other;
+            },
+
+            render() {
+                const cat = this.getCategory(this.task.category);
+                const checklist = this.task.checklist || [];
+                const completed = checklist.filter(i => i.completed).length;
+                const total = checklist.length;
+                const percentage = total > 0 ? (completed / total) * 100 : 0;
+
+                let itemsHTML = '';
+                if (checklist.length === 0) {
+                    itemsHTML = `
+                        <div class="empty-state">
+                            <p>📝 Nessun elemento nella checklist</p>
+                            <p>Aggiungi il primo elemento sopra!</p>
+                        </div>
+                    `;
+                } else {
+                    itemsHTML = checklist.map((item, index) => `
+                        <div class="checklist-item ${item.completed ? 'completed' : ''}" data-index="${index}">
+                            <div class="checkbox" onclick="ChecklistApp.toggleItem(${index})"></div>
+                            <span class="item-text">${this.escapeHtml(item.text)}</span>
+                            <button class="item-delete" onclick="ChecklistApp.deleteItem(${index})">×</button>
+                        </div>
+                    `).join('');
+                }
+
+                document.getElementById('content').innerHTML = `
+                    <div class="header">
+                        <a href="index.html" class="back-btn">←</a>
+                        <div class="task-info">
+                            <div class="task-name">
+                                <span>${cat.icon}</span>
+                                <span>${this.escapeHtml(this.task.name)}</span>
+                            </div>
+                            <div class="task-category">${cat.name} • ${this.task.defaultDuration} min</div>
+                        </div>
+                        <button class="theme-btn" onclick="ChecklistApp.toggleTheme()" title="Cambia tema">
+                            <span id="theme-icon">${document.documentElement.getAttribute('data-theme') === 'light' ? '🌙' : '☀️'}</span>
+                        </button>
+                    </div>
+
+                    <div class="checklist-add">
+                        <input type="text" id="new-item" placeholder="Aggiungi elemento..." maxlength="100" onkeypress="if(event.key==='Enter')ChecklistApp.addItem()">
+                        <button class="btn" onclick="ChecklistApp.addItem()">+</button>
+                    </div>
+
+                    <div class="checklist-items">
+                        ${itemsHTML}
+                    </div>
+
+                    ${total > 0 ? `
+                        <div class="progress-section">
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${percentage}%"></div>
+                            </div>
+                            <span class="progress-text">${completed}/${total} completati</span>
+                        </div>
+                    ` : ''}
+                `;
+
+                // Focus input
+                setTimeout(() => {
+                    document.getElementById('new-item')?.focus();
+                }, 100);
+            },
+
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            },
+
+            async addItem() {
+                const input = document.getElementById('new-item');
+                const text = input.value.trim();
+
+                if (!text) return;
+
+                if (!this.task.checklist) {
+                    this.task.checklist = [];
+                }
+
+                this.task.checklist.push({
+                    id: Date.now().toString(),
+                    text: text,
+                    completed: false,
+                    createdAt: new Date().toISOString()
+                });
+
+                await this.saveTask();
+                this.render();
+            },
+
+            async toggleItem(index) {
+                if (!this.task.checklist || !this.task.checklist[index]) return;
+
+                this.task.checklist[index].completed = !this.task.checklist[index].completed;
+                this.task.checklist[index].completedAt = this.task.checklist[index].completed 
+                    ? new Date().toISOString() 
+                    : null;
+
+                await this.saveTask();
+                this.render();
+            },
+
+            async deleteItem(index) {
+                if (!this.task.checklist) return;
+
+                this.task.checklist.splice(index, 1);
+
+                await this.saveTask();
+                this.render();
+            },
+
+            async saveTask() {
+                try {
+                    await DB.updateTask(this.task);
+                } catch (error) {
+                    console.error('Error saving task:', error);
+                }
+            },
+
+            toggleTheme() {
+                const current = document.documentElement.getAttribute('data-theme');
+                const newTheme = current === 'light' ? 'dark' : 'light';
+                
+                document.documentElement.setAttribute('data-theme', newTheme);
+                localStorage.setItem('flowday-theme', newTheme);
+                
+                // Update icon
+                document.getElementById('theme-icon').textContent = newTheme === 'light' ? '🌙' : '☀️';
+            }
+        };
+
+        // Initialize when DOM is ready
+        document.addEventListener('DOMContentLoaded', () => ChecklistApp.init());
+    </script>
+</body>
+</html>

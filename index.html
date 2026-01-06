@@ -140,6 +140,33 @@
 
     <!-- Settings Modal -->
     <div id="settings-modal" class="modal">
+
+    <!-- Checklist Modal -->
+    <div id="checklist-modal" class="modal">
+        <div class="modal-content checklist-modal-content">
+            <div class="modal-header">
+                <h3 id="checklist-title">Checklist</h3>
+                <button class="modal-close" id="close-checklist-modal">&times;</button>
+            </div>
+            <div class="checklist-container">
+                <div class="checklist-add">
+                    <input type="text" id="checklist-new-item" placeholder="Aggiungi elemento..." maxlength="100">
+                    <button id="checklist-add-btn" class="btn btn-primary">+</button>
+                </div>
+                <div class="checklist-items" id="checklist-items">
+                    <!-- Items will be rendered here -->
+                </div>
+                <div class="checklist-progress" id="checklist-progress">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="checklist-progress-fill"></div>
+                    </div>
+                    <span class="progress-text" id="checklist-progress-text">0/0 completati</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
         <div class="modal-content">
             <div class="modal-header">
                 <h3>Impostazioni</h3>
