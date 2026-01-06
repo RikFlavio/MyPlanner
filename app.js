@@ -13,6 +13,10 @@ const App = {
     insights: [],
     selectedFilter: 'all',
     draggedTask: null,
+    draggedScheduled: null, // For moving scheduled tasks
+    scheduledGhost: null,
+    scheduledTouchTimer: null,
+    justDragged: false, // Prevent click after drag
     selectedScheduledTask: null,
     pendingCellSchedule: null, // For mobile tap-to-schedule flow
 
@@ -514,7 +518,9 @@ const App = {
         // Determine which time to use for positioning
         // If completed with actual times, use actual; otherwise use planned
         const isCompleted = scheduled.status === 'completed';
+        const isSkipped = scheduled.status === 'skipped';
         const hasActualTimes = scheduled.actualStartTime && scheduled.actualDuration;
+        const canDrag = !isCompleted && !isSkipped;
         
         const displayStartTime = (isCompleted && hasActualTimes) ? scheduled.actualStartTime : scheduled.startTime;
         const displayDuration = (isCompleted && hasActualTimes) ? scheduled.actualDuration : scheduled.duration;
@@ -555,21 +561,180 @@ const App = {
         }
 
         const taskEl = document.createElement('div');
-        taskEl.className = `scheduled-task ${scheduled.status || ''} ${(isCompleted && hasActualTimes) ? 'has-actual' : ''}`;
+        taskEl.className = `scheduled-task ${scheduled.status || ''} ${(isCompleted && hasActualTimes) ? 'has-actual' : ''} ${canDrag ? 'draggable' : ''}`;
         taskEl.style.cssText = `
             --task-color: ${cat.color};
             height: ${heightSlots * slotHeight - 4}px;
             top: 0;
         `;
         taskEl.dataset.scheduleId = scheduled.id;
-        taskEl.innerHTML = `
-            <div class="st-name">${cat.icon} ${this.escapeHtml(task.name)}</div>
-            ${timeHTML}
-        `;
+        
+        // Make draggable if not completed/skipped
+        if (canDrag) {
+            taskEl.draggable = true;
+            taskEl.innerHTML = `
+                <div class="st-drag-handle">⋮⋮</div>
+                <div class="st-content">
+                    <div class="st-name">${cat.icon} ${this.escapeHtml(task.name)}</div>
+                    ${timeHTML}
+                </div>
+            `;
+            
+            // Desktop drag events
+            taskEl.addEventListener('dragstart', (e) => this.handleScheduledDragStart(e, scheduled));
+            taskEl.addEventListener('dragend', (e) => this.handleScheduledDragEnd(e));
+            
+            // Mobile touch events
+            taskEl.addEventListener('touchstart', (e) => this.handleScheduledTouchStart(e, scheduled));
+            taskEl.addEventListener('touchmove', (e) => this.handleScheduledTouchMove(e));
+            taskEl.addEventListener('touchend', (e) => this.handleScheduledTouchEnd(e));
+        } else {
+            taskEl.innerHTML = `
+                <div class="st-name">${cat.icon} ${this.escapeHtml(task.name)}</div>
+                ${timeHTML}
+            `;
+        }
 
-        taskEl.addEventListener('click', () => this.openDetailModal(scheduled));
+        taskEl.addEventListener('click', (e) => {
+            // Don't open modal if we just finished dragging
+            if (!this.justDragged) {
+                this.openDetailModal(scheduled);
+            }
+            this.justDragged = false;
+        });
 
         cell.appendChild(taskEl);
+    },
+
+    // =====================================
+    // Scheduled Task Drag & Drop
+    // =====================================
+
+    handleScheduledDragStart(event, scheduled) {
+        this.draggedScheduled = scheduled;
+        event.target.classList.add('dragging');
+        event.dataTransfer.effectAllowed = 'move';
+        event.dataTransfer.setData('text/plain', scheduled.id);
+        
+        // Add class to body to enable CSS-based pointer-events control
+        document.body.classList.add('is-dragging-scheduled');
+    },
+
+    handleScheduledDragEnd(event) {
+        event.target.classList.remove('dragging');
+        this.draggedScheduled = null;
+        document.querySelectorAll('.grid-cell.drag-over').forEach(c => c.classList.remove('drag-over'));
+        
+        // Remove body class
+        document.body.classList.remove('is-dragging-scheduled');
+    },
+
+    handleScheduledTouchStart(event, scheduled) {
+        // Long press to start drag
+        this.scheduledTouchTimer = setTimeout(() => {
+            this.draggedScheduled = scheduled;
+            this.justDragged = true;
+            
+            const touch = event.touches[0];
+            const target = event.currentTarget;
+            
+            // Create ghost element
+            this.scheduledGhost = target.cloneNode(true);
+            this.scheduledGhost.classList.add('drag-ghost');
+            this.scheduledGhost.style.width = target.offsetWidth + 'px';
+            this.scheduledGhost.style.left = touch.clientX - target.offsetWidth / 2 + 'px';
+            this.scheduledGhost.style.top = touch.clientY - 20 + 'px';
+            document.body.appendChild(this.scheduledGhost);
+            
+            target.classList.add('dragging');
+            
+            // Vibrate feedback if available
+            if (navigator.vibrate) {
+                navigator.vibrate(50);
+            }
+        }, 300);
+    },
+
+    handleScheduledTouchMove(event) {
+        if (this.scheduledTouchTimer) {
+            clearTimeout(this.scheduledTouchTimer);
+            this.scheduledTouchTimer = null;
+        }
+        
+        if (!this.draggedScheduled || !this.scheduledGhost) return;
+        
+        event.preventDefault();
+        const touch = event.touches[0];
+        
+        // Move ghost
+        this.scheduledGhost.style.left = touch.clientX - this.scheduledGhost.offsetWidth / 2 + 'px';
+        this.scheduledGhost.style.top = touch.clientY - 20 + 'px';
+        
+        // Highlight cell under touch
+        document.querySelectorAll('.grid-cell.drag-over').forEach(c => c.classList.remove('drag-over'));
+        const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+        const cell = elementBelow?.closest('.grid-cell');
+        if (cell) {
+            cell.classList.add('drag-over');
+        }
+    },
+
+    handleScheduledTouchEnd(event) {
+        if (this.scheduledTouchTimer) {
+            clearTimeout(this.scheduledTouchTimer);
+            this.scheduledTouchTimer = null;
+        }
+        
+        if (!this.draggedScheduled) return;
+        
+        // Find the cell we're over
+        const touch = event.changedTouches[0];
+        const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+        const cell = elementBelow?.closest('.grid-cell');
+        
+        if (cell) {
+            this.moveScheduledTask(this.draggedScheduled, cell);
+        }
+        
+        // Cleanup
+        if (this.scheduledGhost) {
+            this.scheduledGhost.remove();
+            this.scheduledGhost = null;
+        }
+        
+        document.querySelectorAll('.scheduled-task.dragging').forEach(t => t.classList.remove('dragging'));
+        document.querySelectorAll('.grid-cell.drag-over').forEach(c => c.classList.remove('drag-over'));
+        
+        this.draggedScheduled = null;
+    },
+
+    async moveScheduledTask(scheduled, cell) {
+        const dayIndex = parseInt(cell.dataset.day);
+        const time = cell.dataset.time;
+
+        const newDate = new Date(this.currentWeekStart);
+        newDate.setDate(newDate.getDate() + dayIndex);
+
+        // Adjust date if time is before 5:00 (belongs to next calendar day)
+        const [hours] = time.split(':').map(Number);
+        if (hours < this.dayStartHour) {
+            newDate.setDate(newDate.getDate() + 1);
+        }
+
+        const dateStr = this.formatDateLocal(newDate);
+
+        // Update scheduled task
+        scheduled.date = dateStr;
+        scheduled.startTime = time;
+
+        try {
+            await DB.updateScheduledTask(scheduled);
+            this.renderScheduledTasks();
+            this.showNotification('Task spostato!', 'success');
+        } catch (error) {
+            console.error('Failed to move task:', error);
+            this.showNotification('Errore nello spostamento', 'error');
+        }
     },
 
     renderInsights() {
@@ -617,23 +782,44 @@ const App = {
     // =====================================
 
     handleDragStart(event) {
-        const taskId = event.target.dataset.taskId;
+        // Find the task-item element (might be dragging from a child element)
+        const taskItem = event.target.closest('.task-item');
+        if (!taskItem) return;
+        
+        const taskId = taskItem.dataset.taskId;
         this.draggedTask = this.tasks.find(t => t.id === taskId);
-        event.target.classList.add('dragging');
-        event.dataTransfer.effectAllowed = 'copy';
+        taskItem.classList.add('dragging');
+        event.dataTransfer.effectAllowed = 'all';
         event.dataTransfer.setData('text/plain', taskId);
+        
+        // Add class to body to enable CSS-based pointer-events control
+        document.body.classList.add('is-dragging-task');
     },
 
     handleDragEnd(event) {
-        event.target.classList.remove('dragging');
+        const taskItem = event.target.closest('.task-item');
+        if (taskItem) {
+            taskItem.classList.remove('dragging');
+        }
         this.draggedTask = null;
         document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+        
+        // Remove body class
+        document.body.classList.remove('is-dragging-task');
     },
 
     handleDragOver(event) {
+        // Always prevent default to allow drop
         event.preventDefault();
         event.stopPropagation();
-        event.dataTransfer.dropEffect = 'copy';
+        
+        // Try to set dropEffect, but don't fail if it doesn't work
+        try {
+            event.dataTransfer.dropEffect = 'move';
+        } catch(e) {
+            // Some browsers don't allow setting dropEffect
+        }
+        
         event.currentTarget.classList.add('drag-over');
     },
 
@@ -646,10 +832,19 @@ const App = {
         event.stopPropagation();
         event.currentTarget.classList.remove('drag-over');
 
-        if (!this.draggedTask) return;
-
         const cell = event.currentTarget;
-        await this.scheduleTaskToCell(this.draggedTask, cell);
+
+        // Handle moving existing scheduled task
+        if (this.draggedScheduled) {
+            await this.moveScheduledTask(this.draggedScheduled, cell);
+            this.justDragged = true;
+            return;
+        }
+
+        // Handle adding new task
+        if (this.draggedTask) {
+            await this.scheduleTaskToCell(this.draggedTask, cell);
+        }
     },
 
     // Touch events for mobile

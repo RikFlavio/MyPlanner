@@ -909,6 +909,57 @@ h1, h2, h3, h4 {
     pointer-events: none;
 }
 
+/* When dragging a task from sidebar, disable pointer events on scheduled tasks */
+body.is-dragging-task .scheduled-task {
+    pointer-events: none !important;
+}
+
+/* When dragging a scheduled task, disable pointer events on other scheduled tasks */
+body.is-dragging-scheduled .scheduled-task:not(.dragging) {
+    pointer-events: none !important;
+}
+
+/* Ensure grid cells can receive drops during drag */
+body.is-dragging-task .grid-cell,
+body.is-dragging-scheduled .grid-cell {
+    pointer-events: auto !important;
+}
+
+/* Draggable scheduled tasks */
+.scheduled-task.draggable {
+    cursor: grab;
+}
+
+.scheduled-task.draggable:active {
+    cursor: grabbing;
+}
+
+.scheduled-task.dragging {
+    opacity: 0.4;
+    transform: scale(0.95);
+}
+
+.st-drag-handle {
+    position: absolute;
+    left: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-size: 0.7rem;
+    line-height: 1;
+    opacity: 0.5;
+    letter-spacing: -2px;
+}
+
+.scheduled-task.draggable:hover .st-drag-handle {
+    opacity: 1;
+    color: var(--text-secondary);
+}
+
+.scheduled-task .st-content {
+    padding-left: var(--spacing-sm);
+}
+
 .scheduled-task .st-name {
     font-size: 0.75rem;
     font-weight: 500;
@@ -2098,6 +2149,21 @@ h1, h2, h3, h4 {
     
     .scheduled-task.completed.has-actual {
         min-height: 65px;
+    }
+    
+    /* Drag handle on mobile */
+    .st-drag-handle {
+        left: 8px;
+        font-size: 0.8rem;
+        opacity: 0.6;
+    }
+    
+    .scheduled-task.draggable {
+        padding-left: calc(var(--spacing-md) + 16px);
+    }
+    
+    .scheduled-task.dragging {
+        opacity: 0.3;
     }
     
     .scheduled-task:active {
