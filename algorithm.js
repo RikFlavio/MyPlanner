@@ -17,6 +17,10 @@ const Algorithm = {
         const history = await DB.getAllHistory();
         const schedule = await DB.getAll(DB.stores.schedule);
         const existingPatterns = await DB.getAllPatterns();
+        
+        // Load special periods
+        const specialPeriods = await DB.getSetting('specialPeriods') || [];
+        const periodCategories = await DB.getSetting('periodCategories') || [];
 
         const insights = [];
 
@@ -33,12 +37,15 @@ const Algorithm = {
             };
         }
 
-        // Analyze different aspects
-        const timePatterns = this.analyzeTimePatterns(history, tasks);
-        const durationPatterns = this.analyzeDurationPatterns(history, tasks);
-        const frequencyPatterns = this.analyzeFrequencyPatterns(history, tasks);
-        const sequencePatterns = this.analyzeSequencePatterns(history, tasks);
-        const completionPatterns = this.analyzeCompletionPatterns(history, tasks);
+        // Separate history into normal days and special period days
+        const { normalHistory, periodHistory, periodBreakdown } = this.separateHistoryByPeriods(history, specialPeriods, periodCategories);
+
+        // Analyze normal routine (days without special periods)
+        const timePatterns = this.analyzeTimePatterns(normalHistory, tasks);
+        const durationPatterns = this.analyzeDurationPatterns(normalHistory, tasks);
+        const frequencyPatterns = this.analyzeFrequencyPatterns(normalHistory, tasks);
+        const sequencePatterns = this.analyzeSequencePatterns(normalHistory, tasks);
+        const completionPatterns = this.analyzeCompletionPatterns(normalHistory, tasks);
 
         // Generate insights from patterns
         insights.push(...this.generateTimeInsights(timePatterns, tasks));
@@ -46,14 +53,43 @@ const Algorithm = {
         insights.push(...this.generateFrequencyInsights(frequencyPatterns, tasks));
         insights.push(...this.generateSequenceInsights(sequencePatterns, tasks));
         insights.push(...this.generateCompletionInsights(completionPatterns, tasks));
-        insights.push(...this.generateOptimizationInsights(history, schedule, tasks));
+        insights.push(...this.generateOptimizationInsights(normalHistory, schedule, tasks));
+
+        // Add insight about period statistics if available
+        if (periodHistory.length > 0) {
+            insights.push({
+                type: 'info',
+                title: 'Periodi speciali',
+                text: `${periodHistory.length} task completati durante periodi speciali (esclusi dalle statistiche normali)`,
+                priority: 1
+            });
+        }
+
+        // Analyze patterns for each period category (if enough data)
+        const periodPatterns = [];
+        for (const [categoryId, categoryHistory] of Object.entries(periodBreakdown)) {
+            if (categoryHistory.length >= 3) {
+                const category = periodCategories.find(c => c.id === categoryId);
+                const categoryName = category?.name || 'Periodo speciale';
+                
+                // Generate period-specific patterns
+                const periodTimePatterns = this.analyzeTimePatterns(categoryHistory, tasks);
+                for (const p of periodTimePatterns) {
+                    p.periodCategory = categoryId;
+                    p.periodCategoryName = categoryName;
+                    p.id = `${p.id}_period_${categoryId}`;
+                    periodPatterns.push(p);
+                }
+            }
+        }
 
         // Save patterns to DB
         const allPatterns = [
             ...timePatterns,
             ...durationPatterns,
             ...frequencyPatterns,
-            ...sequencePatterns
+            ...sequencePatterns,
+            ...periodPatterns
         ];
 
         for (const pattern of allPatterns) {
@@ -67,6 +103,42 @@ const Algorithm = {
             insights: insights.slice(0, 10), // Return top 10 insights
             patterns: allPatterns
         };
+    },
+
+    /**
+     * Separate history entries into normal days and special period days
+     */
+    separateHistoryByPeriods(history, specialPeriods, periodCategories) {
+        const normalHistory = [];
+        const periodHistory = [];
+        const periodBreakdown = {}; // { categoryId: [entries] }
+
+        for (const entry of history) {
+            const entryDate = entry.date;
+            let foundPeriod = null;
+
+            // Check if entry falls within any special period
+            for (const period of specialPeriods) {
+                if (entryDate >= period.startDate && entryDate <= period.endDate) {
+                    foundPeriod = period;
+                    break;
+                }
+            }
+
+            if (foundPeriod) {
+                periodHistory.push(entry);
+                
+                // Group by category
+                if (!periodBreakdown[foundPeriod.categoryId]) {
+                    periodBreakdown[foundPeriod.categoryId] = [];
+                }
+                periodBreakdown[foundPeriod.categoryId].push(entry);
+            } else {
+                normalHistory.push(entry);
+            }
+        }
+
+        return { normalHistory, periodHistory, periodBreakdown };
     },
 
     /**

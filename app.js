@@ -21,6 +21,8 @@ const App = {
     pendingCellSchedule: null, // For mobile tap-to-schedule flow
     selectedChecklistTask: null, // For checklist modal
     isDraggingTask: false, // To prevent click after drag
+    specialPeriods: [], // Special periods from calendar
+    periodCategories: [], // Period categories
 
     // Category config
     categories: {
@@ -102,6 +104,9 @@ const App = {
         // Load data
         this.tasks = await DB.getAllTasks();
         await this.loadWeekSchedule();
+        
+        // Load special periods and categories
+        await this.loadSpecialPeriods();
 
         // Render UI
         this.renderWeekHeader();
@@ -119,6 +124,36 @@ const App = {
 
         // Check backup reminder
         await this.checkBackupReminder();
+    },
+    
+    /**
+     * Load special periods from DB
+     */
+    async loadSpecialPeriods() {
+        try {
+            this.specialPeriods = await DB.getSetting('specialPeriods') || [];
+            this.periodCategories = await DB.getSetting('periodCategories') || [];
+        } catch (e) {
+            this.specialPeriods = [];
+            this.periodCategories = [];
+        }
+    },
+    
+    /**
+     * Get period for a specific date
+     */
+    getPeriodForDate(dateStr) {
+        for (const period of this.specialPeriods) {
+            if (dateStr >= period.startDate && dateStr <= period.endDate) {
+                const category = this.periodCategories.find(c => c.id === period.categoryId);
+                return {
+                    ...period,
+                    color: category?.color || '#6b7280',
+                    categoryName: category?.name || ''
+                };
+            }
+        }
+        return null;
     },
 
     /**
@@ -379,11 +414,23 @@ const App = {
             const isToday = date.getTime() === today.getTime();
             const dayNames = ['Dom', 'Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab'];
 
+            // Check if this day is in a special period
+            const dateStr = this.formatDateLocal(date);
+            const period = this.getPeriodForDate(dateStr);
+
             const header = document.createElement('div');
             header.className = `day-header ${isToday ? 'today' : ''}`;
+            
+            if (period) {
+                header.classList.add('in-period');
+                header.style.setProperty('--period-color', period.color);
+                header.title = period.categoryName;
+            }
+            
             header.innerHTML = `
                 <div class="day-name">${dayNames[date.getDay()]}</div>
                 <div class="day-date">${date.getDate()}</div>
+                ${period ? `<div class="period-indicator" style="background: ${period.color}"></div>` : ''}
             `;
             headerContainer.appendChild(header);
         }

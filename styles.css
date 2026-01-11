@@ -817,6 +817,23 @@ h1, h2, h3, h4 {
     background-clip: text;
 }
 
+.day-header.in-period {
+    background: color-mix(in srgb, var(--period-color) 15%, transparent);
+    position: relative;
+}
+
+.day-header.in-period.today {
+    background: color-mix(in srgb, var(--period-color) 25%, transparent);
+}
+
+.day-header .period-indicator {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+}
+
 /* Grid Body */
 .grid-body {
     display: flex;
