@@ -2,7 +2,7 @@
 
 **Smart Weekly Planner** - Un'applicazione web per pianificare la tua settimana con un algoritmo che impara dalle tue abitudini.
 
-![My Planner](MyPlanner.png)
+![My Planner](img/MyPlanner.png)
 
 ## ✨ Caratteristiche
 
@@ -20,6 +20,14 @@
 - ⏱️ Durata personalizzabile
 - ✅ Completa / ⏭️ Salta / 🗑️ Rimuovi
 - 📊 Tracciamento orario effettivo vs pianificato
+- 📝 Checklist per ogni task
+
+### Calendario Trimestrale 📅
+
+- 🗓️ Vista 3 mesi
+- 🏷️ Categorie personalizzabili (Vacanza, Viaggio Lavoro, etc.)
+- 📌 Periodi speciali da-a con colori
+- 📊 Statistiche separate per periodo
 
 ### Algoritmo Intelligente 🧠
 
@@ -45,7 +53,9 @@ L'app **impara dalle tue abitudini** analizzando:
 - 📱 PWA installabile
 - 🔒 Privacy: nessun dato inviato a server
 
-### Opzione: PWA
+## 📦 Installazione
+
+### PWA:
 
 1. Visita l'app nel browser
 2. Clicca "Installa" o "Aggiungi a Home"
@@ -55,14 +65,20 @@ L'app **impara dalle tue abitudini** analizzando:
 
 ```
 my-planner/
-├── index.html      # Struttura HTML
-├── styles.css      # Stili e responsive design
-├── app.js          # Logica applicazione
-├── db.js           # Gestione IndexedDB
-├── algorithm.js    # Algoritmo di apprendimento
-├── manifest.json   # PWA manifest
-├── MyPlanner.png   # Icona app
-└── README.md       # Documentazione
+├── index.html        # Pagina principale
+├── checklist.html    # Pagina checklist task
+├── calendar.html     # Calendario trimestrale
+├── stats.html        # Statistiche e pattern
+├── styles.css        # Stili e responsive design
+├── app.js            # Logica applicazione
+├── db.js             # Gestione IndexedDB
+├── algorithm.js      # Algoritmo di apprendimento
+├── manifest.json     # PWA manifest
+├── img/
+│   ├── MyPlanner.png       # Logo (1024x1024)
+│   ├── MyPlanner-512.png   # Icona PWA (512x512)
+│   └── MyPlanner-192.png   # Icona PWA (192x192)
+└── README.md         # Documentazione
 ```
 
 ## 🛠️ Tecnologie
@@ -115,11 +131,11 @@ Per sincronizzare tra dispositivi, usa la funzione Esporta/Importa.
 
 ## 📝 License
 
-MIT License
+MIT License -
 
 ## 👨‍💻 Autore
 
-Progetto Sviluppato open source con ❤️ da PwR per uso personale ed educativo
+Sviluppato con ❤️ e ☕ da PwR
 
 ---
 
