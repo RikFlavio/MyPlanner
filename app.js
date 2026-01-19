@@ -23,6 +23,7 @@ const App = {
     isDraggingTask: false, // To prevent click after drag
     specialPeriods: [], // Special periods from calendar
     periodCategories: [], // Period categories
+    selectedExistingTask: null, // For autocomplete task selection
 
     // Category config
     categories: {
@@ -111,6 +112,7 @@ const App = {
         // Render UI
         this.renderWeekHeader();
         this.renderGrid();
+        this.renderFilters();
         this.renderTaskList();
         this.renderScheduledTasks();
         
@@ -183,6 +185,7 @@ const App = {
         document.getElementById('add-task-btn')?.addEventListener('click', () => this.openTaskModal());
         document.getElementById('close-task-modal')?.addEventListener('click', () => this.closeTaskModal());
         document.getElementById('task-form')?.addEventListener('submit', (e) => this.handleTaskSubmit(e));
+        document.getElementById('task-name')?.addEventListener('input', (e) => this.handleTaskNameInput(e));
 
         // Category selection
         document.querySelectorAll('.category-btn').forEach(btn => {
@@ -699,6 +702,7 @@ const App = {
                     <div class="st-name">${cat.icon} ${this.escapeHtml(task.name)}</div>
                     ${timeHTML}
                 </div>
+                <div class="resize-handle"></div>
             `;
             
             // Desktop drag events
@@ -709,6 +713,11 @@ const App = {
             taskEl.addEventListener('touchstart', (e) => this.handleScheduledTouchStart(e, scheduled));
             taskEl.addEventListener('touchmove', (e) => this.handleScheduledTouchMove(e));
             taskEl.addEventListener('touchend', (e) => this.handleScheduledTouchEnd(e));
+
+            // Resize handle events
+            const resizeHandle = taskEl.querySelector('.resize-handle');
+            resizeHandle.addEventListener('mousedown', (e) => this.handleResizeStart(e, scheduled, taskEl));
+            resizeHandle.addEventListener('touchstart', (e) => this.handleResizeTouchStart(e, scheduled, taskEl));
         } else {
             taskEl.innerHTML = `
                 <div class="st-name">${cat.icon} ${this.escapeHtml(task.name)}</div>
@@ -748,6 +757,140 @@ const App = {
         
         // Remove body class
         document.body.classList.remove('is-dragging-scheduled');
+    },
+
+    // =====================================
+    // Resize Scheduled Tasks
+    // =====================================
+
+    resizingTask: null,
+    resizeStartY: 0,
+    resizeStartHeight: 0,
+    resizeTaskEl: null,
+
+    handleResizeStart(e, scheduled, taskEl) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        this.resizingTask = scheduled;
+        this.resizeTaskEl = taskEl;
+        this.resizeStartY = e.clientY;
+        this.resizeStartHeight = taskEl.offsetHeight;
+        
+        taskEl.classList.add('resizing');
+        taskEl.draggable = false;
+        document.body.classList.add('is-resizing');
+        
+        document.addEventListener('mousemove', this.handleResizeMove);
+        document.addEventListener('mouseup', this.handleResizeEnd);
+    },
+
+    handleResizeMove: function(e) {
+        if (!App.resizingTask || !App.resizeTaskEl) return;
+        
+        const deltaY = e.clientY - App.resizeStartY;
+        const slotHeight = 40; // --cell-height
+        const minHeight = slotHeight - 4;
+        const newHeight = Math.max(minHeight, App.resizeStartHeight + deltaY);
+        
+        // Snap to slot increments
+        const slots = Math.max(1, Math.round((newHeight + 4) / slotHeight));
+        const snappedHeight = slots * slotHeight - 4;
+        
+        App.resizeTaskEl.style.height = snappedHeight + 'px';
+    },
+
+    handleResizeEnd: function(e) {
+        if (!App.resizingTask || !App.resizeTaskEl) return;
+        
+        document.removeEventListener('mousemove', App.handleResizeMove);
+        document.removeEventListener('mouseup', App.handleResizeEnd);
+        
+        const slotHeight = 40;
+        const finalHeight = App.resizeTaskEl.offsetHeight + 4;
+        const slots = Math.round(finalHeight / slotHeight);
+        const newDuration = slots * App.slotDuration;
+        
+        // Update duration
+        App.resizingTask.duration = newDuration;
+        App.updateScheduledTask(App.resizingTask);
+        
+        App.resizeTaskEl.classList.remove('resizing');
+        App.resizeTaskEl.draggable = true;
+        document.body.classList.remove('is-resizing');
+        
+        App.resizingTask = null;
+        App.resizeTaskEl = null;
+        
+        App.renderScheduledTasks();
+    },
+
+    handleResizeTouchStart(e, scheduled, taskEl) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const touch = e.touches[0];
+        this.resizingTask = scheduled;
+        this.resizeTaskEl = taskEl;
+        this.resizeStartY = touch.clientY;
+        this.resizeStartHeight = taskEl.offsetHeight;
+        
+        taskEl.classList.add('resizing');
+        document.body.classList.add('is-resizing');
+        
+        document.addEventListener('touchmove', this.handleResizeTouchMove, { passive: false });
+        document.addEventListener('touchend', this.handleResizeTouchEnd);
+    },
+
+    handleResizeTouchMove: function(e) {
+        if (!App.resizingTask || !App.resizeTaskEl) return;
+        e.preventDefault();
+        
+        const touch = e.touches[0];
+        const deltaY = touch.clientY - App.resizeStartY;
+        const slotHeight = 40;
+        const minHeight = slotHeight - 4;
+        const newHeight = Math.max(minHeight, App.resizeStartHeight + deltaY);
+        
+        const slots = Math.max(1, Math.round((newHeight + 4) / slotHeight));
+        const snappedHeight = slots * slotHeight - 4;
+        
+        App.resizeTaskEl.style.height = snappedHeight + 'px';
+    },
+
+    handleResizeTouchEnd: function(e) {
+        if (!App.resizingTask || !App.resizeTaskEl) return;
+        
+        document.removeEventListener('touchmove', App.handleResizeTouchMove);
+        document.removeEventListener('touchend', App.handleResizeTouchEnd);
+        
+        const slotHeight = 40;
+        const finalHeight = App.resizeTaskEl.offsetHeight + 4;
+        const slots = Math.round(finalHeight / slotHeight);
+        const newDuration = slots * App.slotDuration;
+        
+        App.resizingTask.duration = newDuration;
+        App.updateScheduledTask(App.resizingTask);
+        
+        App.resizeTaskEl.classList.remove('resizing');
+        document.body.classList.remove('is-resizing');
+        
+        App.resizingTask = null;
+        App.resizeTaskEl = null;
+        
+        App.renderScheduledTasks();
+    },
+
+    async updateScheduledTask(scheduled) {
+        try {
+            await DB.updateSchedule(scheduled);
+            const idx = this.schedule.findIndex(s => s.id === scheduled.id);
+            if (idx !== -1) {
+                this.schedule[idx] = scheduled;
+            }
+        } catch (error) {
+            console.error('Failed to update scheduled task:', error);
+        }
     },
 
     handleScheduledTouchStart(event, scheduled) {
@@ -1097,11 +1240,68 @@ const App = {
         document.getElementById('task-form').reset();
         document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('selected'));
         document.querySelector('.category-btn[data-category="personal"]').classList.add('selected');
+        document.getElementById('duration-group').style.display = 'block';
+        document.getElementById('task-autocomplete').innerHTML = '';
+        this.selectedExistingTask = null;
         document.getElementById('task-name').focus();
     },
 
     closeTaskModal() {
         document.getElementById('task-modal').classList.remove('open');
+        this.selectedExistingTask = null;
+    },
+
+    handleTaskNameInput(e) {
+        const query = e.target.value.trim().toLowerCase();
+        const autocompleteEl = document.getElementById('task-autocomplete');
+        const durationGroup = document.getElementById('duration-group');
+        
+        if (query.length < 1) {
+            autocompleteEl.innerHTML = '';
+            durationGroup.style.display = 'block';
+            this.selectedExistingTask = null;
+            return;
+        }
+
+        const matches = this.tasks.filter(t => 
+            t.name.toLowerCase().includes(query)
+        ).slice(0, 5);
+
+        if (matches.length === 0) {
+            autocompleteEl.innerHTML = '';
+            durationGroup.style.display = 'block';
+            this.selectedExistingTask = null;
+            return;
+        }
+
+        autocompleteEl.innerHTML = matches.map(task => {
+            const cat = this.categories[task.category] || this.categories.other;
+            return `
+                <div class="autocomplete-item" data-task-id="${task.id}">
+                    <span class="ac-icon">${cat.icon}</span>
+                    <span class="ac-name">${this.escapeHtml(task.name)}</span>
+                    <span class="ac-duration">${task.defaultDuration}m</span>
+                </div>
+            `;
+        }).join('');
+
+        autocompleteEl.querySelectorAll('.autocomplete-item').forEach(item => {
+            item.addEventListener('click', () => this.selectExistingTask(item.dataset.taskId));
+        });
+    },
+
+    selectExistingTask(taskId) {
+        const task = this.tasks.find(t => t.id === taskId);
+        if (!task) return;
+
+        this.selectedExistingTask = task;
+        document.getElementById('task-name').value = task.name;
+        document.getElementById('task-autocomplete').innerHTML = '';
+        document.getElementById('duration-group').style.display = 'none';
+        
+        // Select the category
+        document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('selected'));
+        document.querySelector(`.category-btn[data-category="${task.category}"]`)?.classList.add('selected');
     },
 
     selectCategory(btn) {
@@ -1112,12 +1312,26 @@ const App = {
     async handleTaskSubmit(event) {
         event.preventDefault();
 
+        // If existing task selected, just close modal - task already exists
+        if (this.selectedExistingTask) {
+            this.closeTaskModal();
+            this.showNotification(`Task "${this.selectedExistingTask.name}" già esistente`, 'info');
+            return;
+        }
+
         const name = document.getElementById('task-name').value.trim();
         const category = document.querySelector('.category-btn.selected')?.dataset.category || 'other';
         const duration = parseInt(document.getElementById('task-duration').value);
 
         if (!name) {
             this.showNotification('Inserisci un nome per il task', 'error');
+            return;
+        }
+
+        // Check if task with same name exists
+        const existing = this.tasks.find(t => t.name.toLowerCase() === name.toLowerCase());
+        if (existing) {
+            this.showNotification(`Task "${name}" già esistente`, 'warning');
             return;
         }
 
@@ -1131,6 +1345,7 @@ const App = {
             const saved = await DB.addTask(task);
             this.tasks.push(saved);
             this.renderTaskList();
+            this.renderFilters();
             this.closeTaskModal();
             this.showNotification(`Task "${name}" creato!`, 'success');
         } catch (error) {
@@ -1159,6 +1374,7 @@ const App = {
         try {
             await DB.deleteTask(taskId);
             this.tasks = this.tasks.filter(t => t.id !== taskId);
+            this.renderFilters();
             this.renderTaskList();
             this.showNotification('Task eliminato', 'success');
         } catch (error) {
@@ -1173,6 +1389,33 @@ const App = {
             btn.classList.toggle('active', btn.dataset.filter === filter);
         });
         this.renderTaskList();
+    },
+
+    renderFilters() {
+        const filterContainer = document.querySelector('.task-filters');
+        if (!filterContainer) return;
+
+        // Get categories that have tasks
+        const usedCategories = new Set(this.tasks.map(t => t.category));
+        
+        // Always show "Tutti" button
+        let html = `<button class="filter-btn ${this.selectedFilter === 'all' ? 'active' : ''}" data-filter="all" onclick="App.filterTasks('all')">Tutti</button>`;
+        
+        // Only show category filters that have tasks
+        const categoryOrder = ['work', 'health', 'home', 'personal', 'social', 'other'];
+        for (const cat of categoryOrder) {
+            if (usedCategories.has(cat)) {
+                const catConfig = this.categories[cat];
+                html += `<button class="filter-btn ${this.selectedFilter === cat ? 'active' : ''}" data-filter="${cat}" onclick="App.filterTasks('${cat}')">${catConfig.icon}</button>`;
+            }
+        }
+
+        filterContainer.innerHTML = html;
+
+        // If current filter is now empty, reset to 'all'
+        if (this.selectedFilter !== 'all' && !usedCategories.has(this.selectedFilter)) {
+            this.filterTasks('all');
+        }
     },
 
     // =====================================

@@ -5,363 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Checklist - My Planner</title>
     <link rel="icon" type="image/png" href="img/MyPlanner.png">
-    <style>
-        :root {
-            --bg-primary: #0a0a0f;
-            --bg-secondary: #12121a;
-            --bg-glass: rgba(255, 255, 255, 0.03);
-            --bg-glass-hover: rgba(255, 255, 255, 0.06);
-            --text-primary: #f0f0f5;
-            --text-secondary: #a0a0b0;
-            --text-muted: #606070;
-            --border-subtle: rgba(255, 255, 255, 0.06);
-            --border-light: rgba(255, 255, 255, 0.1);
-            --accent-primary: #6366f1;
-            --accent-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-            --success: #22c55e;
-            --warning: #f59e0b;
-            --danger: #ef4444;
-            --radius-sm: 6px;
-            --radius-md: 10px;
-            --radius-lg: 16px;
-            --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.3);
-            --transition-fast: 0.15s ease;
-            --transition-normal: 0.25s ease;
-            
-            --cat-work: #3b82f6;
-            --cat-health: #22c55e;
-            --cat-home: #f59e0b;
-            --cat-personal: #8b5cf6;
-            --cat-social: #ec4899;
-            --cat-other: #6b7280;
-        }
-
-        [data-theme="light"] {
-            --bg-primary: #f5f5f7;
-            --bg-secondary: #ffffff;
-            --bg-glass: rgba(0, 0, 0, 0.02);
-            --bg-glass-hover: rgba(0, 0, 0, 0.05);
-            --text-primary: #1a1a2e;
-            --text-secondary: #4a4a5a;
-            --text-muted: #8a8a9a;
-            --border-subtle: rgba(0, 0, 0, 0.06);
-            --border-light: rgba(0, 0, 0, 0.1);
-            --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.1);
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            min-height: 100vh;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 500px;
-            margin: 0 auto;
-        }
-
-        .header {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 24px;
-            padding-bottom: 16px;
-            border-bottom: 1px solid var(--border-subtle);
-        }
-
-        .back-btn {
-            background: var(--bg-glass);
-            border: 1px solid var(--border-subtle);
-            color: var(--text-primary);
-            width: 40px;
-            height: 40px;
-            border-radius: var(--radius-md);
-            cursor: pointer;
-            font-size: 1.2rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all var(--transition-fast);
-            text-decoration: none;
-        }
-
-        .back-btn:hover {
-            background: var(--bg-glass-hover);
-            border-color: var(--border-light);
-        }
-
-        .theme-btn {
-            background: var(--bg-glass);
-            border: 1px solid var(--border-subtle);
-            color: var(--text-primary);
-            width: 40px;
-            height: 40px;
-            border-radius: var(--radius-md);
-            cursor: pointer;
-            font-size: 1.2rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all var(--transition-fast);
-        }
-
-        .theme-btn:hover {
-            background: var(--bg-glass-hover);
-            border-color: var(--border-light);
-        }
-
-        .task-info {
-            flex: 1;
-        }
-
-        .task-name {
-            font-size: 1.3rem;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .task-category {
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            margin-top: 4px;
-        }
-
-        .checklist-add {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-
-        .checklist-add input {
-            flex: 1;
-            padding: 14px 16px;
-            background: var(--bg-glass);
-            border: 1px solid var(--border-light);
-            border-radius: var(--radius-md);
-            color: var(--text-primary);
-            font-size: 1rem;
-        }
-
-        .checklist-add input:focus {
-            outline: none;
-            border-color: var(--accent-primary);
-        }
-
-        .checklist-add input::placeholder {
-            color: var(--text-muted);
-        }
-
-        .btn {
-            padding: 14px 20px;
-            background: var(--accent-gradient);
-            border: none;
-            border-radius: var(--radius-md);
-            color: white;
-            font-size: 1.1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all var(--transition-fast);
-        }
-
-        .btn:hover {
-            transform: scale(1.02);
-        }
-
-        .btn:active {
-            transform: scale(0.98);
-        }
-
-        .checklist-items {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            margin-bottom: 20px;
-        }
-
-        .checklist-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 14px 16px;
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-md);
-            transition: all var(--transition-fast);
-        }
-
-        .checklist-item:hover {
-            border-color: var(--border-light);
-        }
-
-        .checklist-item.completed {
-            opacity: 0.6;
-            background: rgba(34, 197, 94, 0.1);
-        }
-
-        .checklist-item.completed .item-text {
-            text-decoration: line-through;
-            color: var(--text-muted);
-        }
-
-        .checkbox {
-            width: 24px;
-            height: 24px;
-            border: 2px solid var(--border-light);
-            border-radius: var(--radius-sm);
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            transition: all var(--transition-fast);
-            background: transparent;
-        }
-
-        .checkbox:hover {
-            border-color: var(--accent-primary);
-        }
-
-        .checklist-item.completed .checkbox {
-            background: var(--success);
-            border-color: var(--success);
-            color: white;
-        }
-
-        .checkbox::after {
-            content: '';
-            display: none;
-        }
-
-        .checklist-item.completed .checkbox::after {
-            content: '✓';
-            display: block;
-            font-size: 0.9rem;
-            font-weight: bold;
-        }
-
-        .item-text {
-            flex: 1;
-            font-size: 1rem;
-            color: var(--text-primary);
-            word-break: break-word;
-        }
-
-        .item-delete {
-            background: none;
-            border: none;
-            color: var(--text-muted);
-            cursor: pointer;
-            padding: 6px;
-            font-size: 1.2rem;
-            opacity: 0.5;
-            transition: all var(--transition-fast);
-            border-radius: var(--radius-sm);
-        }
-
-        .checklist-item:hover .item-delete {
-            opacity: 1;
-        }
-
-        .item-delete:hover {
-            color: var(--danger);
-            background: rgba(239, 68, 68, 0.1);
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 40px 20px;
-            color: var(--text-muted);
-        }
-
-        .empty-state p {
-            margin-bottom: 8px;
-        }
-
-        .progress-section {
-            padding: 16px;
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-md);
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
-
-        .progress-bar {
-            flex: 1;
-            height: 10px;
-            background: var(--bg-glass);
-            border-radius: 5px;
-            overflow: hidden;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: var(--accent-gradient);
-            border-radius: 5px;
-            transition: width var(--transition-normal);
-            width: 0%;
-        }
-
-        .progress-text {
-            font-size: 0.9rem;
-            color: var(--text-secondary);
-            white-space: nowrap;
-            font-weight: 500;
-        }
-
-        .error-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: var(--text-muted);
-        }
-
-        .error-state h2 {
-            color: var(--danger);
-            margin-bottom: 12px;
-        }
-
-        @media (max-width: 500px) {
-            body {
-                padding: 16px;
-            }
-
-            .task-name {
-                font-size: 1.1rem;
-            }
-
-            .checklist-add input {
-                padding: 12px 14px;
-            }
-
-            .btn {
-                padding: 12px 16px;
-            }
-
-            .checklist-item {
-                padding: 12px 14px;
-            }
-
-            .item-delete {
-                opacity: 1;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="styles-pages.css">
 </head>
 <body>
-    <div class="container">
+    <div class="container checklist-container">
         <div id="content">
-            <!-- Content will be loaded here -->
             <div class="empty-state">
                 <p>Caricamento...</p>
             </div>
@@ -375,7 +23,6 @@
             taskId: null,
 
             async init() {
-                // Get task ID from URL
                 const params = new URLSearchParams(window.location.search);
                 this.taskId = params.get('taskId');
 
@@ -384,11 +31,9 @@
                     return;
                 }
 
-                // Load theme
                 const theme = localStorage.getItem('flowday-theme') || 'dark';
                 document.documentElement.setAttribute('data-theme', theme);
 
-                // Initialize DB and load task
                 await DB.init();
                 await this.loadTask();
             },
@@ -492,7 +137,6 @@
                     ` : ''}
                 `;
 
-                // Focus input
                 setTimeout(() => {
                     document.getElementById('new-item')?.focus();
                 }, 100);
@@ -561,12 +205,10 @@
                 document.documentElement.setAttribute('data-theme', newTheme);
                 localStorage.setItem('flowday-theme', newTheme);
                 
-                // Update icon
                 document.getElementById('theme-icon').textContent = newTheme === 'light' ? '🌙' : '☀️';
             }
         };
 
-        // Initialize when DOM is ready
         document.addEventListener('DOMContentLoaded', () => ChecklistApp.init());
     </script>
 </body>
