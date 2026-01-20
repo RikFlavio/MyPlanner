@@ -95,7 +95,10 @@
                     `;
                 } else {
                     itemsHTML = checklist.map((item, index) => `
-                        <div class="checklist-item ${item.completed ? 'completed' : ''}" data-index="${index}">
+                        <div class="checklist-item ${item.completed ? 'completed' : ''}" 
+                             data-index="${index}" 
+                             draggable="true">
+                            <span class="drag-handle">⋮⋮</span>
                             <div class="checkbox" onclick="ChecklistApp.toggleItem(${index})"></div>
                             <span class="item-text">${this.escapeHtml(item.text)}</span>
                             <button class="item-delete" onclick="ChecklistApp.deleteItem(${index})">×</button>
@@ -123,7 +126,7 @@
                         <button class="btn" onclick="ChecklistApp.addItem()">+</button>
                     </div>
 
-                    <div class="checklist-items">
+                    <div class="checklist-items" id="checklist-items">
                         ${itemsHTML}
                     </div>
 
@@ -137,9 +140,172 @@
                     ` : ''}
                 `;
 
+                // Setup drag events for checklist items
+                this.setupDragEvents();
+
                 setTimeout(() => {
                     document.getElementById('new-item')?.focus();
                 }, 100);
+            },
+
+            // Drag & Drop for reordering
+            draggedIndex: null,
+
+            setupDragEvents() {
+                const items = document.querySelectorAll('.checklist-item[draggable="true"]');
+                
+                items.forEach(item => {
+                    item.addEventListener('dragstart', (e) => this.handleDragStart(e));
+                    item.addEventListener('dragend', (e) => this.handleDragEnd(e));
+                    item.addEventListener('dragover', (e) => this.handleDragOver(e));
+                    item.addEventListener('dragleave', (e) => this.handleDragLeave(e));
+                    item.addEventListener('drop', (e) => this.handleDrop(e));
+                    
+                    // Touch events for mobile
+                    item.addEventListener('touchstart', (e) => this.handleTouchStart(e));
+                    item.addEventListener('touchmove', (e) => this.handleTouchMove(e));
+                    item.addEventListener('touchend', (e) => this.handleTouchEnd(e));
+                });
+            },
+
+            handleDragStart(e) {
+                this.draggedIndex = parseInt(e.target.closest('.checklist-item').dataset.index);
+                e.target.closest('.checklist-item').classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+            },
+
+            handleDragEnd(e) {
+                e.target.closest('.checklist-item')?.classList.remove('dragging');
+                document.querySelectorAll('.checklist-item').forEach(item => {
+                    item.classList.remove('drag-over', 'drag-over-top', 'drag-over-bottom');
+                });
+                this.draggedIndex = null;
+            },
+
+            handleDragOver(e) {
+                e.preventDefault();
+                const item = e.target.closest('.checklist-item');
+                if (!item || parseInt(item.dataset.index) === this.draggedIndex) return;
+                
+                const rect = item.getBoundingClientRect();
+                const midY = rect.top + rect.height / 2;
+                
+                item.classList.remove('drag-over-top', 'drag-over-bottom');
+                item.classList.add('drag-over');
+                
+                if (e.clientY < midY) {
+                    item.classList.add('drag-over-top');
+                } else {
+                    item.classList.add('drag-over-bottom');
+                }
+            },
+
+            handleDragLeave(e) {
+                const item = e.target.closest('.checklist-item');
+                if (item) {
+                    item.classList.remove('drag-over', 'drag-over-top', 'drag-over-bottom');
+                }
+            },
+
+            async handleDrop(e) {
+                e.preventDefault();
+                const targetItem = e.target.closest('.checklist-item');
+                if (!targetItem) return;
+                
+                const targetIndex = parseInt(targetItem.dataset.index);
+                if (targetIndex === this.draggedIndex || this.draggedIndex === null) return;
+                
+                // Determine insert position
+                const rect = targetItem.getBoundingClientRect();
+                const insertAfter = e.clientY > rect.top + rect.height / 2;
+                
+                // Reorder array
+                const [draggedItem] = this.task.checklist.splice(this.draggedIndex, 1);
+                
+                let newIndex = targetIndex;
+                if (this.draggedIndex < targetIndex) {
+                    newIndex = insertAfter ? targetIndex : targetIndex - 1;
+                } else {
+                    newIndex = insertAfter ? targetIndex + 1 : targetIndex;
+                }
+                
+                this.task.checklist.splice(newIndex, 0, draggedItem);
+                
+                await this.saveTask();
+                this.render();
+            },
+
+            // Touch events for mobile drag
+            touchStartY: 0,
+            touchedItem: null,
+
+            handleTouchStart(e) {
+                if (!e.target.closest('.drag-handle')) return;
+                
+                this.touchedItem = e.target.closest('.checklist-item');
+                this.draggedIndex = parseInt(this.touchedItem.dataset.index);
+                this.touchStartY = e.touches[0].clientY;
+                this.touchedItem.classList.add('dragging');
+            },
+
+            handleTouchMove(e) {
+                if (!this.touchedItem) return;
+                e.preventDefault();
+                
+                const touch = e.touches[0];
+                const elemBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+                const itemBelow = elemBelow?.closest('.checklist-item');
+                
+                document.querySelectorAll('.checklist-item').forEach(item => {
+                    item.classList.remove('drag-over', 'drag-over-top', 'drag-over-bottom');
+                });
+                
+                if (itemBelow && itemBelow !== this.touchedItem) {
+                    const rect = itemBelow.getBoundingClientRect();
+                    const midY = rect.top + rect.height / 2;
+                    
+                    itemBelow.classList.add('drag-over');
+                    if (touch.clientY < midY) {
+                        itemBelow.classList.add('drag-over-top');
+                    } else {
+                        itemBelow.classList.add('drag-over-bottom');
+                    }
+                }
+            },
+
+            async handleTouchEnd(e) {
+                if (!this.touchedItem) return;
+                
+                const touch = e.changedTouches[0];
+                const elemBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+                const targetItem = elemBelow?.closest('.checklist-item');
+                
+                if (targetItem && targetItem !== this.touchedItem) {
+                    const targetIndex = parseInt(targetItem.dataset.index);
+                    const rect = targetItem.getBoundingClientRect();
+                    const insertAfter = touch.clientY > rect.top + rect.height / 2;
+                    
+                    const [draggedItem] = this.task.checklist.splice(this.draggedIndex, 1);
+                    
+                    let newIndex = targetIndex;
+                    if (this.draggedIndex < targetIndex) {
+                        newIndex = insertAfter ? targetIndex : targetIndex - 1;
+                    } else {
+                        newIndex = insertAfter ? targetIndex + 1 : targetIndex;
+                    }
+                    
+                    this.task.checklist.splice(newIndex, 0, draggedItem);
+                    await this.saveTask();
+                }
+                
+                this.touchedItem.classList.remove('dragging');
+                document.querySelectorAll('.checklist-item').forEach(item => {
+                    item.classList.remove('drag-over', 'drag-over-top', 'drag-over-bottom');
+                });
+                
+                this.touchedItem = null;
+                this.draggedIndex = null;
+                this.render();
             },
 
             escapeHtml(text) {

@@ -24,6 +24,8 @@ const App = {
     specialPeriods: [], // Special periods from calendar
     periodCategories: [], // Period categories
     selectedExistingTask: null, // For autocomplete task selection
+    resizeTimer: null, // For debouncing resize events
+    searchQuery: '', // For task search
 
     // Category config
     categories: {
@@ -104,6 +106,8 @@ const App = {
 
         // Load data
         this.tasks = await DB.getAllTasks();
+        // Sort by order if available
+        this.tasks.sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
         await this.loadWeekSchedule();
         
         // Load special periods and categories
@@ -187,6 +191,25 @@ const App = {
         document.getElementById('task-form')?.addEventListener('submit', (e) => this.handleTaskSubmit(e));
         document.getElementById('task-name')?.addEventListener('input', (e) => this.handleTaskNameInput(e));
 
+        // Task Panel
+        document.getElementById('task-panel-bar')?.addEventListener('click', () => this.toggleTaskPanel());
+        document.getElementById('task-search')?.addEventListener('input', (e) => this.handleTaskSearch(e));
+        document.getElementById('task-search')?.addEventListener('focus', () => this.expandTaskPanel());
+        
+        // Filter Dropdown
+        document.getElementById('filter-dropdown-btn')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.toggleFilterDropdown();
+        });
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            const dropdown = document.getElementById('filter-dropdown');
+            if (dropdown && !dropdown.contains(e.target)) {
+                dropdown.classList.remove('open');
+            }
+        });
+
         // Category selection
         document.querySelectorAll('.category-btn').forEach(btn => {
             btn.addEventListener('click', () => this.selectCategory(btn));
@@ -223,7 +246,7 @@ const App = {
         document.getElementById('insights-toggle')?.addEventListener('click', () => this.toggleInsightsPanel());
 
         // Mobile
-        document.getElementById('mobile-tasks-btn')?.addEventListener('click', () => this.toggleMobileTaskSidebar());
+        document.getElementById('mobile-tasks-btn')?.addEventListener('click', () => this.toggleMobileTaskPanel());
         document.getElementById('mobile-add-btn')?.addEventListener('click', () => {
             this.closeMobileSheets();
             this.openTaskModal();
@@ -249,7 +272,7 @@ const App = {
             if (e.key === 'Escape') {
                 document.querySelectorAll('.modal.open').forEach(m => m.classList.remove('open'));
                 document.getElementById('insights-panel')?.classList.remove('open');
-                document.getElementById('task-sidebar')?.classList.remove('open');
+                document.getElementById('task-panel')?.classList.remove('expanded');
             }
         });
 
@@ -495,21 +518,37 @@ const App = {
         const taskList = document.getElementById('task-list');
         
         let filteredTasks = this.tasks;
+        
+        // Apply category filter
         if (this.selectedFilter !== 'all') {
-            filteredTasks = this.tasks.filter(t => t.category === this.selectedFilter);
+            filteredTasks = filteredTasks.filter(t => t.category === this.selectedFilter);
+        }
+        
+        // Apply search filter
+        if (this.searchQuery) {
+            filteredTasks = filteredTasks.filter(t => 
+                t.name.toLowerCase().includes(this.searchQuery)
+            );
         }
 
+        // Update filter button
+        this.updateFilterButton();
+
         if (filteredTasks.length === 0) {
+            const message = this.searchQuery 
+                ? `Nessun task trovato per "${this.searchQuery}"`
+                : (this.selectedFilter !== 'all' ? 'Nessun task in questa categoria' : 'Nessun task creato');
+            
             taskList.innerHTML = `
                 <div class="task-empty">
-                    <p>Nessun task${this.selectedFilter !== 'all' ? ' in questa categoria' : ''}.</p>
-                    <button class="btn btn-primary btn-small" onclick="App.openTaskModal()">+ Crea il primo</button>
+                    <p>${message}</p>
+                    <button class="btn btn-primary btn-small" onclick="App.openTaskModal()">+ Crea task</button>
                 </div>
             `;
             return;
         }
 
-        taskList.innerHTML = filteredTasks.map(task => {
+        taskList.innerHTML = filteredTasks.map((task, index) => {
             const cat = this.categories[task.category] || this.categories.other;
             const checklist = task.checklist || [];
             const completedCount = checklist.filter(item => item.completed).length;
@@ -531,10 +570,10 @@ const App = {
                 <div class="task-item" 
                      draggable="true" 
                      data-task-id="${task.id}"
+                     data-task-index="${index}"
                      style="--task-color: ${cat.color}"
-                     onclick="App.onTaskItemClick(event, '${task.id}')"
-                     ondragstart="App.handleDragStart(event)"
-                     ondragend="App.handleDragEnd(event)">
+                     onclick="App.onTaskItemClick(event, '${task.id}')">
+                    <span class="drag-handle" title="Trascina per riordinare">⋮⋮</span>
                     <span class="task-icon">${cat.icon}</span>
                     <span class="task-name">${this.escapeHtml(task.name)}</span>
                     ${totalCount > 0 ? `<span class="task-checklist-badge ${badgeClass}">${badgeText}</span>` : ''}
@@ -544,13 +583,23 @@ const App = {
             `;
         }).join('');
 
-        // Add touch events for mobile drag and click for checklist
+        // Add events for task items
         taskList.querySelectorAll('.task-item').forEach(item => {
+            // Drag to grid events
+            item.addEventListener('dragstart', (e) => this.handleDragStart(e));
+            item.addEventListener('dragend', (e) => this.handleDragEnd(e));
+            
+            // Reorder drag events
+            item.addEventListener('dragover', (e) => this.handleReorderDragOver(e, item));
+            item.addEventListener('dragleave', (e) => this.handleReorderDragLeave(e, item));
+            item.addEventListener('drop', (e) => this.handleReorderDrop(e, item));
+            
+            // Touch events for mobile
             item.addEventListener('touchstart', (e) => this.handleTouchStart(e));
             item.addEventListener('touchmove', (e) => this.handleTouchMove(e));
             item.addEventListener('touchend', (e) => this.handleTouchEnd(e));
             
-            // Click handler for both mobile and desktop
+            // Click handler
             item.addEventListener('click', (e) => this.handleTaskItemClick(e, item));
             
             // Track if we're dragging to prevent click
@@ -559,6 +608,91 @@ const App = {
                 setTimeout(() => { this.isDraggingTask = false; }, 100);
             });
         });
+    },
+
+    // Task reorder drag handlers
+    reorderDraggedTaskId: null,
+
+    handleReorderDragOver(e, item) {
+        e.preventDefault();
+        const draggedId = this.draggedTask?.id || this.reorderDraggedTaskId;
+        if (!draggedId) return;
+        
+        const targetId = item.dataset.taskId;
+        if (draggedId === targetId) return;
+        
+        // Determine if dropping above or below
+        const rect = item.getBoundingClientRect();
+        const midY = rect.top + rect.height / 2;
+        
+        item.classList.remove('reorder-over-top', 'reorder-over-bottom');
+        if (e.clientY < midY) {
+            item.classList.add('reorder-over-top');
+        } else {
+            item.classList.add('reorder-over-bottom');
+        }
+        item.classList.add('reorder-over');
+    },
+
+    handleReorderDragLeave(e, item) {
+        item.classList.remove('reorder-over', 'reorder-over-top', 'reorder-over-bottom');
+    },
+
+    async handleReorderDrop(e, targetItem) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        targetItem.classList.remove('reorder-over', 'reorder-over-top', 'reorder-over-bottom');
+        
+        const draggedId = this.draggedTask?.id || this.reorderDraggedTaskId;
+        if (!draggedId) return;
+        
+        const targetId = targetItem.dataset.taskId;
+        if (draggedId === targetId) return;
+        
+        // Find indices
+        const draggedIndex = this.tasks.findIndex(t => t.id === draggedId);
+        const targetIndex = this.tasks.findIndex(t => t.id === targetId);
+        
+        if (draggedIndex === -1 || targetIndex === -1) return;
+        
+        // Determine insert position
+        const rect = targetItem.getBoundingClientRect();
+        const midY = rect.top + rect.height / 2;
+        const insertAfter = e.clientY > midY;
+        
+        // Remove from old position
+        const [draggedTask] = this.tasks.splice(draggedIndex, 1);
+        
+        // Calculate new index
+        let newIndex = targetIndex;
+        if (draggedIndex < targetIndex) {
+            newIndex = insertAfter ? targetIndex : targetIndex - 1;
+        } else {
+            newIndex = insertAfter ? targetIndex + 1 : targetIndex;
+        }
+        
+        // Insert at new position
+        this.tasks.splice(newIndex, 0, draggedTask);
+        
+        // Save order
+        await this.saveTaskOrder();
+        
+        // Re-render
+        this.renderTaskList();
+        this.reorderDraggedTaskId = null;
+    },
+
+    async saveTaskOrder() {
+        try {
+            // Save each task with updated order
+            for (let i = 0; i < this.tasks.length; i++) {
+                this.tasks[i].order = i;
+                await DB.updateTask(this.tasks[i]);
+            }
+        } catch (error) {
+            console.error('Failed to save task order:', error);
+        }
     },
 
     handleTaskItemClick(event, item) {
@@ -632,15 +766,14 @@ const App = {
         const task = this.tasks.find(t => t.id === scheduled.taskId);
         if (!task) return;
 
-        // Find the date's day index - parse date parts to avoid timezone issues
+        // Find the date's day index
         const [year, month, day] = scheduled.date.split('-').map(Number);
         const scheduleDate = new Date(year, month - 1, day);
         
         const dayDiff = Math.round((scheduleDate - this.currentWeekStart) / (1000 * 60 * 60 * 24));
         if (dayDiff < 0 || dayDiff >= 7) return;
 
-        // Determine which time to use for positioning
-        // If completed with actual times, use actual; otherwise use planned
+        // Determine which time to use
         const isCompleted = scheduled.status === 'completed';
         const isSkipped = scheduled.status === 'skipped';
         const hasActualTimes = scheduled.actualStartTime && scheduled.actualDuration;
@@ -649,7 +782,7 @@ const App = {
         const displayStartTime = (isCompleted && hasActualTimes) ? scheduled.actualStartTime : scheduled.startTime;
         const displayDuration = (isCompleted && hasActualTimes) ? scheduled.actualDuration : scheduled.duration;
 
-        // Calculate slot position based on display time
+        // Calculate slot position
         const [hours, minutes] = displayStartTime.split(':').map(Number);
         let totalMinutes = hours * 60 + minutes;
         
@@ -659,13 +792,15 @@ const App = {
         }
         const slotStart = Math.floor((totalMinutes - this.dayStartHour * 60) / this.slotDuration);
 
-        // Find the cell
-        const cell = document.querySelector(`.grid-cell[data-day="${dayDiff}"][data-slot="${slotStart}"]`);
+        // Find the cell - on mobile use day 0 (current day), on desktop use dayDiff
+        const cellDay = this.isMobile ? 0 : dayDiff;
+        const cell = document.querySelector(`.grid-cell[data-day="${cellDay}"][data-slot="${slotStart}"]`);
         if (!cell) return;
 
         const cat = this.categories[task.category] || this.categories.other;
         const slotHeight = 40; // CSS --cell-height
-        const heightSlots = Math.ceil(displayDuration / this.slotDuration);
+        const slotsNeeded = Math.ceil(displayDuration / this.slotDuration);
+        const taskHeight = slotsNeeded * slotHeight - 4;
 
         // Build time display
         const plannedEnd = this.addMinutesToTime(scheduled.startTime, scheduled.duration);
@@ -674,8 +809,6 @@ const App = {
         if (isCompleted && hasActualTimes) {
             const actualEnd = this.addMinutesToTime(scheduled.actualStartTime, scheduled.actualDuration);
             const durationDiff = scheduled.actualDuration - scheduled.duration;
-            
-            // Show actual time prominently, planned time smaller
             timeHTML = `
                 <div class="st-time st-actual">${scheduled.actualStartTime} - ${actualEnd} <span class="st-duration-badge ${durationDiff > 0 ? 'over' : durationDiff < 0 ? 'under' : ''}">${scheduled.actualDuration}m</span></div>
                 <div class="st-time st-planned">Piano: ${scheduled.startTime} - ${plannedEnd} (${scheduled.duration}m)</div>
@@ -688,12 +821,10 @@ const App = {
         taskEl.className = `scheduled-task ${scheduled.status || ''} ${(isCompleted && hasActualTimes) ? 'has-actual' : ''} ${canDrag ? 'draggable' : ''}`;
         taskEl.style.cssText = `
             --task-color: ${cat.color};
-            height: ${heightSlots * slotHeight - 4}px;
-            top: 0;
+            height: ${taskHeight}px;
         `;
         taskEl.dataset.scheduleId = scheduled.id;
         
-        // Make draggable if not completed/skipped
         if (canDrag) {
             taskEl.draggable = true;
             taskEl.innerHTML = `
@@ -726,7 +857,6 @@ const App = {
         }
 
         taskEl.addEventListener('click', (e) => {
-            // Don't open modal if we just finished dragging
             if (!this.justDragged) {
                 this.openDetailModal(scheduled);
             }
@@ -1052,7 +1182,8 @@ const App = {
         
         const taskId = taskItem.dataset.taskId;
         this.draggedTask = this.tasks.find(t => t.id === taskId);
-        taskItem.classList.add('dragging');
+        this.reorderDraggedTaskId = taskId;
+        taskItem.classList.add('dragging', 'reorder-dragging');
         event.dataTransfer.effectAllowed = 'all';
         event.dataTransfer.setData('text/plain', taskId);
         
@@ -1063,10 +1194,13 @@ const App = {
     handleDragEnd(event) {
         const taskItem = event.target.closest('.task-item');
         if (taskItem) {
-            taskItem.classList.remove('dragging');
+            taskItem.classList.remove('dragging', 'reorder-dragging');
         }
         this.draggedTask = null;
-        document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+        this.reorderDraggedTaskId = null;
+        document.querySelectorAll('.drag-over, .reorder-over, .reorder-over-top, .reorder-over-bottom').forEach(el => {
+            el.classList.remove('drag-over', 'reorder-over', 'reorder-over-top', 'reorder-over-bottom');
+        });
         
         // Remove body class
         document.body.classList.remove('is-dragging-task');
@@ -1183,10 +1317,10 @@ const App = {
         // Store the selected cell for later use
         this.selectedCell = cell;
         
-        // If there are tasks, show the task sidebar for selection
+        // If there are tasks, show the task panel for selection
         if (this.tasks.length > 0) {
             this.pendingCellSchedule = cell;
-            this.toggleMobileTaskSidebar();
+            this.toggleMobileTaskPanel();
         } else {
             // No tasks yet, open task creation modal
             this.openTaskModal();
@@ -1222,9 +1356,6 @@ const App = {
             this.schedule.push(saved);
             this.renderSingleScheduledTask(saved);
             this.showNotification(`"${task.name}" pianificato!`, 'success');
-
-            // Close mobile sidebar if open
-            document.getElementById('task-sidebar')?.classList.remove('open');
         } catch (error) {
             console.error('Failed to schedule task:', error);
             this.showNotification('Errore nel salvataggio', 'error');
@@ -1385,37 +1516,112 @@ const App = {
 
     filterTasks(filter) {
         this.selectedFilter = filter;
-        document.querySelectorAll('.filter-btn').forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.filter === filter);
-        });
+        this.renderFilters();
         this.renderTaskList();
+        this.updateFilterButton();
+        
+        // Show task list after selecting filter
+        document.getElementById('task-panel')?.classList.add('list-visible');
+        
+        // Close dropdown
+        document.getElementById('filter-dropdown')?.classList.remove('open');
     },
 
     renderFilters() {
-        const filterContainer = document.querySelector('.task-filters');
-        if (!filterContainer) return;
+        const menuContainer = document.getElementById('filter-dropdown-menu');
+        if (!menuContainer) return;
 
-        // Get categories that have tasks
-        const usedCategories = new Set(this.tasks.map(t => t.category));
-        
-        // Always show "Tutti" button
-        let html = `<button class="filter-btn ${this.selectedFilter === 'all' ? 'active' : ''}" data-filter="all" onclick="App.filterTasks('all')">Tutti</button>`;
-        
-        // Only show category filters that have tasks
+        // Count tasks per category
+        const categoryCounts = {};
+        this.tasks.forEach(t => {
+            categoryCounts[t.category] = (categoryCounts[t.category] || 0) + 1;
+        });
+
         const categoryOrder = ['work', 'health', 'home', 'personal', 'social', 'other'];
-        for (const cat of categoryOrder) {
-            if (usedCategories.has(cat)) {
-                const catConfig = this.categories[cat];
-                html += `<button class="filter-btn ${this.selectedFilter === cat ? 'active' : ''}" data-filter="${cat}" onclick="App.filterTasks('${cat}')">${catConfig.icon}</button>`;
-            }
+        const usedCategories = categoryOrder.filter(cat => categoryCounts[cat]);
+
+        // Build dropdown options
+        let html = `
+            <div class="filter-option ${this.selectedFilter === 'all' ? 'active' : ''}" data-filter="all" onclick="App.filterTasks('all')">
+                <span class="option-icon">📋</span>
+                <span class="option-name">Tutti</span>
+                <span class="option-count">${this.tasks.length}</span>
+            </div>
+        `;
+        
+        for (const cat of usedCategories) {
+            const catConfig = this.categories[cat];
+            const count = categoryCounts[cat];
+            html += `
+                <div class="filter-option ${this.selectedFilter === cat ? 'active' : ''}" data-filter="${cat}" onclick="App.filterTasks('${cat}')">
+                    <span class="option-icon">${catConfig.icon}</span>
+                    <span class="option-name">${catConfig.name}</span>
+                    <span class="option-count">${count}</span>
+                </div>
+            `;
         }
 
-        filterContainer.innerHTML = html;
+        menuContainer.innerHTML = html;
+        this.updateFilterButton();
 
         // If current filter is now empty, reset to 'all'
-        if (this.selectedFilter !== 'all' && !usedCategories.has(this.selectedFilter)) {
+        if (this.selectedFilter !== 'all' && !categoryCounts[this.selectedFilter]) {
             this.filterTasks('all');
         }
+    },
+
+    toggleFilterDropdown() {
+        const dropdown = document.getElementById('filter-dropdown');
+        dropdown?.classList.toggle('open');
+    },
+
+    updateFilterButton() {
+        const currentEl = document.getElementById('filter-current');
+        const countEl = document.getElementById('task-count');
+        const panel = document.getElementById('task-panel');
+        
+        if (currentEl) {
+            // If list is not visible yet, show prompt
+            if (!panel?.classList.contains('list-visible')) {
+                currentEl.textContent = 'Seleziona categoria';
+            } else if (this.selectedFilter === 'all') {
+                currentEl.textContent = 'Tutti';
+            } else {
+                const cat = this.categories[this.selectedFilter];
+                currentEl.textContent = cat ? `${cat.icon} ${cat.name}` : 'Tutti';
+            }
+        }
+        
+        if (countEl) {
+            countEl.textContent = this.tasks.length;
+        }
+    },
+
+    // Task Panel Functions
+    toggleTaskPanel() {
+        const panel = document.getElementById('task-panel');
+        const wasExpanded = panel.classList.contains('expanded');
+        panel.classList.toggle('expanded');
+        
+        // If collapsing, also hide the list
+        if (wasExpanded) {
+            panel.classList.remove('list-visible');
+            this.updateFilterButton();
+        }
+    },
+
+    expandTaskPanel() {
+        document.getElementById('task-panel').classList.add('expanded');
+    },
+
+    collapseTaskPanel() {
+        document.getElementById('task-panel').classList.remove('expanded');
+    },
+
+    handleTaskSearch(e) {
+        const query = e.target.value.trim().toLowerCase();
+        this.searchQuery = query;
+        this.renderTaskList();
     },
 
     // =====================================
@@ -1785,7 +1991,7 @@ const App = {
         } else {
             // Close other panels first on mobile
             if (this.isMobile) {
-                document.getElementById('task-sidebar')?.classList.remove('open');
+                document.getElementById('task-panel')?.classList.remove('expanded');
                 overlay.classList.add('show');
             }
             panel.classList.add('open');
@@ -1972,24 +2178,24 @@ const App = {
     // Mobile
     // =====================================
 
-    toggleMobileTaskSidebar() {
-        const sidebar = document.getElementById('task-sidebar');
+    toggleMobileTaskPanel() {
+        const panel = document.getElementById('task-panel');
         const overlay = document.getElementById('mobile-overlay');
-        const isOpen = sidebar.classList.contains('open');
+        const isOpen = panel.classList.contains('expanded');
         
         if (isOpen) {
-            sidebar.classList.remove('open');
+            panel.classList.remove('expanded');
             overlay.classList.remove('show');
         } else {
             // Close other panels first
             document.getElementById('insights-panel')?.classList.remove('open');
-            sidebar.classList.add('open');
+            panel.classList.add('expanded');
             overlay.classList.add('show');
         }
     },
 
     closeMobileSheets() {
-        document.getElementById('task-sidebar')?.classList.remove('open');
+        document.getElementById('task-panel')?.classList.remove('expanded');
         document.getElementById('insights-panel')?.classList.remove('open');
         document.getElementById('mobile-overlay')?.classList.remove('show');
         this.pendingCellSchedule = null;

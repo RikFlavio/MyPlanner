@@ -119,14 +119,20 @@
     border-bottom: 1px solid rgba(0, 0, 0, 0.1);
 }
 
-[data-theme="light"] .task-sidebar {
+[data-theme="light"] .task-panel {
     background: rgba(237, 237, 240, 0.98);
     border-right-color: rgba(0, 0, 0, 0.1);
 }
 
-[data-theme="light"] .sidebar-header,
-[data-theme="light"] .task-filters {
+[data-theme="light"] .task-panel-bar,
+[data-theme="light"] .panel-search,
+[data-theme="light"] .panel-filters {
     border-bottom-color: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .panel-search input {
+    background: white;
+    border-color: rgba(0, 0, 0, 0.15);
 }
 
 /* Grid styling for light theme */
@@ -582,73 +588,333 @@ h1, h2, h3, h4 {
 /* ===================================
    Task Sidebar
    =================================== */
-.task-sidebar {
-    width: var(--sidebar-width);
+/* ===================================
+   Task Panel (Collapsible)
+   =================================== */
+
+.task-panel {
+    position: relative;
+    display: flex;
+    flex-direction: column;
     background: var(--bg-glass);
     backdrop-filter: blur(20px);
     border-right: 1px solid var(--border-subtle);
-    display: flex;
-    flex-direction: column;
+    transition: width var(--transition-normal) ease;
+    width: 56px;
     flex-shrink: 0;
-    transition: transform var(--transition-normal);
+    z-index: 15;
 }
 
-.sidebar-header {
+.task-panel.expanded {
+    width: var(--sidebar-width);
+}
+
+/* Collapsed Bar */
+.task-panel-bar {
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: var(--spacing-md);
+    cursor: pointer;
     border-bottom: 1px solid var(--border-subtle);
+    transition: all var(--transition-fast);
+    min-height: 60px;
+    background: var(--bg-glass);
 }
 
-.sidebar-header h2 {
-    font-size: 1rem;
-    font-weight: 600;
+.task-panel-bar:hover {
+    background: var(--bg-glass-hover);
 }
 
-.task-filters {
+.panel-bar-left {
     display: flex;
-    gap: var(--spacing-xs);
-    padding: var(--spacing-sm) var(--spacing-md);
-    border-bottom: 1px solid var(--border-subtle);
-    overflow-x: auto;
-    scrollbar-width: none;
+    align-items: center;
+    gap: var(--spacing-sm);
+    overflow: hidden;
 }
 
-.task-filters::-webkit-scrollbar {
-    display: none;
+.panel-icon {
+    font-size: 1.2rem;
+    flex-shrink: 0;
 }
 
-.filter-btn {
-    padding: 6px 10px;
+.panel-label {
+    font-weight: 600;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    opacity: 0;
+    width: 0;
+    transition: all var(--transition-fast);
+}
+
+.task-panel.expanded .panel-label {
+    opacity: 1;
+    width: auto;
+}
+
+.panel-bar-right {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.task-count {
     font-size: 0.75rem;
-    background: transparent;
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-sm);
+    font-weight: 600;
+    background: var(--accent-primary);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 10px;
+    min-width: 24px;
+    text-align: center;
+}
+
+.panel-expand-hint {
+    font-size: 0.8rem;
     color: var(--text-muted);
+    transition: transform var(--transition-fast);
+    animation: pulse-hint 2s ease-in-out infinite;
+}
+
+.task-panel.expanded .panel-expand-hint {
+    transform: rotate(180deg);
+    animation: none;
+}
+
+@keyframes pulse-hint {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+}
+
+/* Expanded Content */
+.task-panel-content {
+    display: none;
+    flex-direction: column;
+    flex: 1;
+    overflow: visible;
+}
+
+.task-panel.expanded .task-panel-content {
+    display: flex;
+}
+
+/* Top Row: Filter + Add */
+.panel-top-row {
+    display: flex;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-md);
+    border-bottom: 1px solid var(--border-subtle);
+    align-items: center;
+    position: relative;
+    z-index: 50;
+}
+
+/* Search Bar - hidden by default */
+.panel-search {
+    display: none;
+    padding: 0 var(--spacing-md) var(--spacing-md);
+}
+
+.task-panel.list-visible .panel-search {
+    display: block;
+}
+
+.panel-search input {
+    width: 100%;
+    padding: 10px 12px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    transition: all var(--transition-fast);
+}
+
+.panel-search input:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.panel-search input::placeholder {
+    color: var(--text-muted);
+}
+
+/* Filter Dropdown */
+.filter-dropdown {
+    position: relative;
+    flex: 1;
+}
+
+.filter-dropdown-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 12px;
+    background: var(--bg-glass);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: 0.85rem;
     cursor: pointer;
     transition: all var(--transition-fast);
     white-space: nowrap;
 }
 
-.filter-btn:hover, .filter-btn.active {
+.filter-dropdown-btn:hover {
     background: var(--bg-glass-hover);
     border-color: var(--border-light);
-    color: var(--text-primary);
 }
 
-.filter-btn.active {
+.filter-dropdown.open .filter-dropdown-btn {
     border-color: var(--accent-primary);
+}
+
+.filter-current {
+    max-width: 80px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.filter-arrow {
+    font-size: 0.6rem;
+    color: var(--text-muted);
+    transition: transform var(--transition-fast);
+}
+
+.filter-dropdown.open .filter-arrow {
+    transform: rotate(180deg);
+}
+
+.filter-dropdown-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    min-width: 160px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    z-index: 100;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-8px);
+    transition: all var(--transition-fast);
+    max-height: 250px;
+    overflow-y: auto;
+}
+
+.filter-dropdown.open .filter-dropdown-menu {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.filter-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    cursor: pointer;
+    transition: background var(--transition-fast);
+    font-size: 0.85rem;
+}
+
+.filter-option:first-child {
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+}
+
+.filter-option:last-child {
+    border-radius: 0 0 var(--radius-md) var(--radius-md);
+}
+
+.filter-option:hover {
+    background: var(--bg-glass-hover);
+}
+
+.filter-option.active {
+    background: rgba(99, 102, 241, 0.15);
     color: var(--accent-primary);
 }
 
+.filter-option .option-icon {
+    font-size: 1rem;
+    width: 24px;
+    text-align: center;
+}
+
+.filter-option .option-name {
+    flex: 1;
+}
+
+.filter-option .option-count {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    background: var(--bg-glass);
+    padding: 2px 6px;
+    border-radius: var(--radius-sm);
+}
+
+.filter-option.active .option-count {
+    background: rgba(99, 102, 241, 0.2);
+    color: var(--accent-primary);
+}
+
+/* Add Button */
+.panel-add-btn {
+    width: 38px;
+    height: 38px;
+    background: var(--accent-gradient);
+    border: none;
+    border-radius: var(--radius-md);
+    color: white;
+    font-size: 1.4rem;
+    font-weight: 300;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.panel-add-btn:hover {
+    transform: scale(1.05);
+    box-shadow: var(--shadow-glow);
+}
+
+.panel-add-btn:active {
+    transform: scale(0.95);
+}
+
+/* Task List - hidden by default */
 .task-list {
     flex: 1;
     overflow-y: auto;
+    overflow-x: hidden;
     padding: var(--spacing-sm);
-    display: flex;
+    display: none;
     flex-direction: column;
     gap: var(--spacing-sm);
+    position: relative;
+}
+
+.task-panel.list-visible .task-list {
+    display: flex;
+}
+
+.task-list::-webkit-scrollbar {
+    width: 4px;
+}
+
+.task-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.task-list::-webkit-scrollbar-thumb {
+    background: var(--border-light);
+    border-radius: 2px;
 }
 
 .task-item {
@@ -663,6 +929,7 @@ h1, h2, h3, h4 {
     transition: all var(--transition-fast);
     position: relative;
     overflow: hidden;
+    user-select: none;
 }
 
 .task-item::before {
@@ -685,6 +952,40 @@ h1, h2, h3, h4 {
     cursor: grabbing;
     opacity: 0.8;
     transform: scale(0.98);
+}
+
+/* Drag reorder styles */
+.task-item.reorder-dragging {
+    opacity: 0.5;
+    transform: scale(0.95);
+    z-index: 1;
+}
+
+.task-item.reorder-over {
+    border-color: var(--accent-primary);
+    background: rgba(99, 102, 241, 0.1);
+}
+
+.task-item.reorder-over-top {
+    box-shadow: 0 -2px 0 var(--accent-primary);
+}
+
+.task-item.reorder-over-bottom {
+    box-shadow: 0 2px 0 var(--accent-primary);
+}
+
+.task-item .drag-handle {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    cursor: grab;
+    padding: 4px;
+    margin-left: -4px;
+    opacity: 0.4;
+    transition: opacity var(--transition-fast);
+}
+
+.task-item:hover .drag-handle {
+    opacity: 1;
 }
 
 .task-item .task-icon {
@@ -731,13 +1032,16 @@ h1, h2, h3, h4 {
     background: rgba(239, 68, 68, 0.1);
 }
 
-.sidebar-footer {
-    padding: var(--spacing-md);
-    border-top: 1px solid var(--border-subtle);
+.task-empty {
+    text-align: center;
+    padding: var(--spacing-xl) var(--spacing-md);
+    color: var(--text-muted);
 }
 
-.hint {
-    font-size: 0.75rem;
+.task-empty p {
+    margin-bottom: var(--spacing-md);
+    font-size: 0.85rem;
+}
     color: var(--text-muted);
     text-align: center;
 }
@@ -868,10 +1172,12 @@ h1, h2, h3, h4 {
     flex: 1;
     min-width: 100px;
     min-height: var(--cell-height);
+    height: var(--cell-height);
     border-left: 1px solid var(--border-subtle);
     border-bottom: 1px solid var(--border-subtle);
     position: relative;
     transition: background var(--transition-fast);
+    overflow: visible;
 }
 
 .grid-cell:hover {
@@ -892,6 +1198,7 @@ h1, h2, h3, h4 {
 /* Scheduled Tasks in Grid */
 .scheduled-task {
     position: absolute;
+    top: 0;
     left: 2px;
     right: 2px;
     background: var(--bg-glass);

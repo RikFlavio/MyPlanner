@@ -497,10 +497,51 @@ body {
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-md);
     transition: all var(--transition-fast);
+    cursor: default;
+    user-select: none;
 }
 
 .checklist-item:hover {
     border-color: var(--border-light);
+}
+
+/* Drag handle */
+.checklist-item .drag-handle {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    cursor: grab;
+    padding: 4px;
+    margin-left: -8px;
+    opacity: 0.4;
+    transition: opacity var(--transition-fast);
+    letter-spacing: -2px;
+}
+
+.checklist-item:hover .drag-handle {
+    opacity: 0.8;
+}
+
+.checklist-item .drag-handle:active {
+    cursor: grabbing;
+}
+
+/* Drag states */
+.checklist-item.dragging {
+    opacity: 0.5;
+    transform: scale(0.98);
+    background: var(--bg-tertiary);
+}
+
+.checklist-item.drag-over {
+    border-color: var(--accent-primary);
+}
+
+.checklist-item.drag-over-top {
+    box-shadow: 0 -2px 0 var(--accent-primary);
+}
+
+.checklist-item.drag-over-bottom {
+    box-shadow: 0 2px 0 var(--accent-primary);
 }
 
 .checklist-item.completed {
@@ -1249,6 +1290,13 @@ body {
 
     .checklist-item {
         padding: 12px 14px;
+    }
+
+    .checklist-item .drag-handle {
+        opacity: 0.6;
+        font-size: 1rem;
+        padding: 8px;
+        margin-left: -4px;
     }
 
     .item-delete {

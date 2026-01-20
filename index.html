@@ -259,30 +259,49 @@
         <main class="main-content">
             <!-- Main Content Inner -->
             <div class="main-content-inner">
-                <!-- Task Sidebar -->
-            <aside class="task-sidebar" id="task-sidebar">
-                <div class="sidebar-header">
-                    <h2>I miei Task</h2>
-                    <button id="add-task-btn" class="btn btn-primary btn-small">+ Nuovo</button>
+                <!-- Task Panel (Compact) -->
+                <div class="task-panel" id="task-panel">
+                    <!-- Collapsed Bar -->
+                    <div class="task-panel-bar" id="task-panel-bar">
+                        <div class="panel-bar-left">
+                            <span class="panel-icon">📋</span>
+                            <span class="panel-label">Task</span>
+                        </div>
+                        <div class="panel-bar-right">
+                            <span class="task-count" id="task-count">0</span>
+                            <span class="panel-expand-hint">▶</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Expanded Content -->
+                    <div class="task-panel-content" id="task-panel-content">
+                        <!-- Search + Filter Row -->
+                        <div class="panel-top-row">
+                            <div class="filter-dropdown" id="filter-dropdown">
+                                <button class="filter-dropdown-btn" id="filter-dropdown-btn">
+                                    <span class="filter-current" id="filter-current">Seleziona categoria</span>
+                                    <span class="filter-arrow">▼</span>
+                                </button>
+                                <div class="filter-dropdown-menu" id="filter-dropdown-menu">
+                                    <!-- Rendered dynamically -->
+                                </div>
+                            </div>
+                            <button id="add-task-btn" class="panel-add-btn" title="Nuovo task">+</button>
+                        </div>
+                        
+                        <!-- Search (visible when list is shown) -->
+                        <div class="panel-search" id="panel-search">
+                            <input type="text" id="task-search" placeholder="Cerca task..." autocomplete="off">
+                        </div>
+                        
+                        <!-- Task List (hidden by default) -->
+                        <div class="task-list" id="task-list">
+                            <!-- Tasks will be rendered here -->
+                        </div>
+                    </div>
                 </div>
-                <div class="task-filters">
-                    <button class="filter-btn active" data-filter="all">Tutti</button>
-                    <button class="filter-btn" data-filter="work">💼</button>
-                    <button class="filter-btn" data-filter="health">🏃</button>
-                    <button class="filter-btn" data-filter="home">🏠</button>
-                    <button class="filter-btn" data-filter="personal">⭐</button>
-                    <button class="filter-btn" data-filter="social">👥</button>
-                    <button class="filter-btn" data-filter="other">📌</button>
-                </div>
-                <div class="task-list" id="task-list">
-                    <!-- Tasks will be rendered here -->
-                </div>
-                <div class="sidebar-footer">
-                    <p class="hint">Trascina i task sulla griglia →</p>
-                </div>
-            </aside>
 
-            <!-- Weekly Grid -->
+                <!-- Weekly Grid -->
             <section class="grid-container">
                 <div class="grid-wrapper" id="grid-wrapper">
                     <!-- Grid Header (Days) -->
