@@ -28,26 +28,56 @@
     <!-- Onboarding Modal -->
     <div id="onboarding-modal" class="modal">
         <div class="modal-content onboarding">
-            <div class="onboarding-icon"><img src="MyPlanner.png" alt="My Planner" style="width: 80px; height: 80px;"></div>
+            <div class="onboarding-icon"><img src="img/MyPlanner.png" alt="My Planner" style="width: 80px; height: 80px;"></div>
             <h2>Benvenuto in My Planner</h2>
             <p>Il tuo planner settimanale intelligente che impara dalle tue abitudini.</p>
-            <div class="onboarding-features">
-                <div class="feature">
-                    <span class="feature-icon">✨</span>
-                    <span>Crea task e trascinali nella griglia</span>
+            
+            <div class="onboarding-time-setup">
+                <h4>📅 Configura la tua giornata</h4>
+                <p class="time-setup-desc">Scegli l'intervallo orario da visualizzare nel calendario</p>
+                
+                <div class="time-presets">
+                    <button type="button" class="preset-btn" data-start="9" data-end="18">
+                        <span class="preset-icon">💼</span>
+                        <span class="preset-label">Lavoro</span>
+                        <span class="preset-time">9:00 - 18:00</span>
+                    </button>
+                    <button type="button" class="preset-btn" data-start="6" data-end="23">
+                        <span class="preset-icon">☀️</span>
+                        <span class="preset-label">Giornata</span>
+                        <span class="preset-time">6:00 - 23:00</span>
+                    </button>
+                    <button type="button" class="preset-btn" data-start="0" data-end="24">
+                        <span class="preset-icon">🌐</span>
+                        <span class="preset-label">24 ore</span>
+                        <span class="preset-time">0:00 - 24:00</span>
+                    </button>
+                    <button type="button" class="preset-btn active" data-start="custom">
+                        <span class="preset-icon">⚙️</span>
+                        <span class="preset-label">Personalizzato</span>
+                    </button>
                 </div>
-                <div class="feature">
-                    <span class="feature-icon">🧠</span>
-                    <span>L'app impara i tuoi pattern</span>
-                </div>
-                <div class="feature">
-                    <span class="feature-icon">💡</span>
-                    <span>Ricevi suggerimenti di ottimizzazione</span>
+                
+                <div class="time-custom-inputs" id="time-custom-inputs">
+                    <div class="time-input-group">
+                        <label for="onboard-start-hour">Ora inizio</label>
+                        <select id="onboard-start-hour">
+                            <!-- Options will be generated -->
+                        </select>
+                    </div>
+                    <span class="time-separator">→</span>
+                    <div class="time-input-group">
+                        <label for="onboard-end-hour">Ora fine</label>
+                        <select id="onboard-end-hour">
+                            <!-- Options will be generated -->
+                        </select>
+                    </div>
                 </div>
             </div>
+            
             <div class="onboarding-actions">
-                <button id="import-existing" class="btn btn-secondary">Importa backup esistente</button>
-                <button id="start-fresh" class="btn btn-primary">Inizia da zero</button>
+                <button id="import-existing" class="btn btn-secondary">Importa backup</button>
+                <button id="start-fresh" class="btn btn-primary">Inizia</button>
             </div>
         </div>
     </div>
@@ -184,6 +214,26 @@
                 </div>
             </div>
             <div class="settings-section">
+                <h4>Orario calendario</h4>
+                <p class="settings-desc">Intervallo orario visualizzato nella griglia</p>
+                <div class="time-range-setting">
+                    <div class="time-input-group">
+                        <label for="settings-start-hour">Inizio</label>
+                        <select id="settings-start-hour">
+                            <!-- Options generated dynamically -->
+                        </select>
+                    </div>
+                    <span class="time-separator">→</span>
+                    <div class="time-input-group">
+                        <label for="settings-end-hour">Fine</label>
+                        <select id="settings-end-hour">
+                            <!-- Options generated dynamically -->
+                        </select>
+                    </div>
+                </div>
+                <button id="save-time-range" class="btn btn-primary btn-small">Salva orario</button>
+            </div>
+            <div class="settings-section">
                 <h4>Dati</h4>
                 <button id="export-data" class="btn btn-secondary btn-full">
                     <span>📤</span> Esporta backup JSON
@@ -194,28 +244,17 @@
                 <input type="file" id="import-file" accept=".json" hidden>
             </div>
             <div class="settings-section">
-                <h4>Dati storici</h4>
+                <h4>Statistiche</h4>
                 <div id="stats-summary"></div>
+                <a href="stats.html" class="btn btn-secondary btn-full">
+                    <span>📊</span> Visualizza statistiche complete
+                </a>
             </div>
             <div class="settings-section danger-zone">
                 <h4>Zona pericolosa</h4>
                 <button id="clear-all-data" class="btn btn-danger btn-full">
                     <span>🗑️</span> Cancella tutti i dati
                 </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Insights Panel (Mobile: Bottom Sheet) -->
-    <div id="insights-panel" class="insights-panel">
-        <div class="insights-handle"></div>
-        <div class="insights-header">
-            <h3>💡 Insights</h3>
-            <span class="insights-badge" id="insights-count">0</span>
-        </div>
-        <div class="insights-content" id="insights-content">
-            <div class="insight-empty">
-                <p>Usa l'app per qualche giorno e inizierò a darti suggerimenti personalizzati!</p>
             </div>
         </div>
     </div>
@@ -241,16 +280,10 @@
                 <button id="next-day" class="nav-btn">&gt;</button>
             </div>
             <div class="header-right">
-                <a href="calendar.html" class="icon-btn" title="Calendario Trimestrale">📅</a>
-                <a href="stats.html" class="icon-btn" title="Statistiche">📊</a>
-                <button id="suggest-routine-btn" class="icon-btn" title="Suggerisci routine">🪄</button>
+                <a href="calendar.html" class="icon-btn" title="Calendario">📅</a>
                 <div class="theme-toggle">
                     <div class="theme-switch" id="theme-switch" title="Cambia tema"></div>
                 </div>
-                <button id="insights-toggle" class="icon-btn desktop-only" title="Insights">
-                    <span>💡</span>
-                    <span class="notification-dot" id="insights-dot"></span>
-                </button>
                 <button id="settings-btn" class="icon-btn" title="Impostazioni">⚙️</button>
             </div>
         </header>
@@ -327,17 +360,17 @@
                 <span class="nav-icon">📋</span>
                 <span class="nav-label">Task</span>
             </button>
-            <button class="mobile-nav-btn" id="mobile-today-btn">
-                <span class="nav-icon">📅</span>
-                <span class="nav-label">Oggi</span>
-            </button>
             <button class="mobile-nav-btn" id="mobile-add-btn">
                 <span class="nav-icon add-icon">+</span>
                 <span class="nav-label">Nuovo</span>
             </button>
-            <button class="mobile-nav-btn" id="mobile-insights-btn">
-                <span class="nav-icon">💡</span>
-                <span class="nav-label">Insights</span>
+            <button class="mobile-nav-btn" id="mobile-today-btn">
+                <span class="nav-icon">📅</span>
+                <span class="nav-label">Oggi</span>
+            </button>
+            <button class="mobile-nav-btn" id="mobile-settings-btn">
+                <span class="nav-icon">⚙️</span>
+                <span class="nav-label">Impostazioni</span>
             </button>
         </nav>
     </div>

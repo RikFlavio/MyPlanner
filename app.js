@@ -37,8 +37,9 @@ const App = {
         other: { icon: '📌', color: 'var(--cat-other)', name: 'Altro' }
     },
 
-    // Time config (5:00 - 5:00 next day = 24 hours)
+    // Time config (default: 5:00 - 5:00 next day = 24 hours)
     dayStartHour: 5,
+    dayEndHour: 29, // 29 = 5:00 next day (5 + 24)
     slotDuration: 30, // minutes
 
     /**
@@ -95,6 +96,9 @@ const App = {
     async loadApp() {
         // Load theme first for immediate visual feedback
         await this.initTheme();
+        
+        // Load time range settings
+        await this.loadTimeSettings();
 
         // Set current week
         this.currentWeekStart = this.getWeekStart(new Date());
@@ -234,6 +238,7 @@ const App = {
         document.getElementById('import-data')?.addEventListener('click', () => document.getElementById('import-file').click());
         document.getElementById('import-file')?.addEventListener('change', (e) => this.importData(e));
         document.getElementById('clear-all-data')?.addEventListener('click', () => this.clearAllData());
+        document.getElementById('save-time-range')?.addEventListener('click', () => this.saveTimeRangeFromSettings());
 
         // Checklist
         document.getElementById('close-checklist-modal')?.addEventListener('click', () => this.closeChecklistModal());
@@ -242,16 +247,13 @@ const App = {
             if (e.key === 'Enter') this.addChecklistItem();
         });
 
-        // Insights
-        document.getElementById('insights-toggle')?.addEventListener('click', () => this.toggleInsightsPanel());
-
         // Mobile
         document.getElementById('mobile-tasks-btn')?.addEventListener('click', () => this.toggleMobileTaskPanel());
         document.getElementById('mobile-add-btn')?.addEventListener('click', () => {
             this.closeMobileSheets();
             this.openTaskModal();
         });
-        document.getElementById('mobile-insights-btn')?.addEventListener('click', () => this.toggleInsightsPanel());
+        document.getElementById('mobile-settings-btn')?.addEventListener('click', () => this.openSettingsModal());
         document.getElementById('mobile-today-btn')?.addEventListener('click', () => this.goToToday());
         document.getElementById('mobile-overlay')?.addEventListener('click', () => this.closeMobileSheets());
 
@@ -466,9 +468,14 @@ const App = {
         const gridBody = document.getElementById('grid-body');
         gridBody.innerHTML = '';
 
-        // Generate time slots (5:00 to 5:00 next day = 48 slots of 30 min)
-        for (let slot = 0; slot < 48; slot++) {
-            const totalMinutes = (this.dayStartHour * 60) + (slot * this.slotDuration);
+        // Calculate number of slots based on time range
+        const startMinutes = this.dayStartHour * 60;
+        const endMinutes = this.dayEndHour * 60;
+        const totalSlots = Math.ceil((endMinutes - startMinutes) / this.slotDuration);
+
+        // Generate time slots
+        for (let slot = 0; slot < totalSlots; slot++) {
+            const totalMinutes = startMinutes + (slot * this.slotDuration);
             const hours = Math.floor(totalMinutes / 60) % 24;
             const minutes = totalMinutes % 60;
             const isHourStart = minutes === 0;
@@ -1132,43 +1139,8 @@ const App = {
     },
 
     renderInsights() {
-        const container = document.getElementById('insights-content');
-        const countBadge = document.getElementById('insights-count');
-        const dot = document.getElementById('insights-dot');
-
-        countBadge.textContent = this.insights.length;
-        
-        if (this.insights.length > 0) {
-            dot?.classList.add('active');
-        } else {
-            dot?.classList.remove('active');
-        }
-
-        if (this.insights.length === 0) {
-            container.innerHTML = `
-                <div class="insight-empty">
-                    <p>Usa l'app per qualche giorno e inizierò a darti suggerimenti personalizzati!</p>
-                </div>
-            `;
-            return;
-        }
-
-        container.innerHTML = this.insights.map(insight => {
-            const typeLabels = {
-                pattern: 'Pattern rilevato',
-                optimization: 'Ottimizzazione',
-                achievement: 'Traguardo',
-                insight: 'Insight',
-                info: 'Info'
-            };
-
-            return `
-                <div class="insight-card">
-                    <div class="insight-type">${typeLabels[insight.type] || insight.type}</div>
-                    <div class="insight-text">${this.escapeHtml(insight.text)}</div>
-                </div>
-            `;
-        }).join('');
+        // Insights are now rendered inside settings modal via renderInsightsInSettings()
+        // This function is kept for compatibility but does nothing visible
     },
 
     // =====================================
@@ -2004,6 +1976,7 @@ const App = {
 
     openSettingsModal() {
         this.updateStatsDisplay();
+        this.initTimeSelects(); // Initialize time selects with current values
         document.getElementById('settings-modal').classList.add('open');
     },
 
@@ -2142,9 +2115,100 @@ const App = {
 
     showOnboarding() {
         document.getElementById('onboarding-modal').classList.add('open');
+        this.initTimeSelects();
+        this.setupTimePresets();
+    },
+
+    initTimeSelects() {
+        // Generate hour options for selects
+        const startSelect = document.getElementById('onboard-start-hour');
+        const endSelect = document.getElementById('onboard-end-hour');
+        const settingsStartSelect = document.getElementById('settings-start-hour');
+        const settingsEndSelect = document.getElementById('settings-end-hour');
+        
+        const hourOptions = [];
+        for (let h = 0; h <= 23; h++) {
+            hourOptions.push(`<option value="${h}">${h.toString().padStart(2, '0')}:00</option>`);
+        }
+        // Add 24:00 option for end time
+        const endOptions = [...hourOptions, '<option value="24">24:00</option>'];
+        
+        if (startSelect) startSelect.innerHTML = hourOptions.join('');
+        if (endSelect) endSelect.innerHTML = endOptions.join('');
+        if (settingsStartSelect) settingsStartSelect.innerHTML = hourOptions.join('');
+        if (settingsEndSelect) settingsEndSelect.innerHTML = endOptions.join('');
+        
+        // Set default values (6:00 - 23:00)
+        if (startSelect) startSelect.value = '6';
+        if (endSelect) endSelect.value = '23';
+        if (settingsStartSelect) settingsStartSelect.value = this.dayStartHour.toString();
+        if (settingsEndSelect) {
+            const endHour = this.dayEndHour > 23 ? '24' : this.dayEndHour.toString();
+            settingsEndSelect.value = endHour;
+        }
+    },
+
+    setupTimePresets() {
+        const presetBtns = document.querySelectorAll('.preset-btn');
+        const customInputs = document.getElementById('time-custom-inputs');
+        const startSelect = document.getElementById('onboard-start-hour');
+        const endSelect = document.getElementById('onboard-end-hour');
+        
+        presetBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                // Remove active from all
+                presetBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                
+                const start = btn.dataset.start;
+                const end = btn.dataset.end;
+                
+                if (start === 'custom') {
+                    customInputs.style.display = 'flex';
+                } else {
+                    customInputs.style.display = 'flex';
+                    startSelect.value = start;
+                    endSelect.value = end;
+                }
+            });
+        });
+    },
+
+    async loadTimeSettings() {
+        const startHour = await DB.getSetting('dayStartHour');
+        const endHour = await DB.getSetting('dayEndHour');
+        
+        if (startHour !== null) this.dayStartHour = parseInt(startHour);
+        if (endHour !== null) this.dayEndHour = parseInt(endHour);
+    },
+
+    async saveTimeSettings(startHour, endHour) {
+        // Validate
+        if (startHour >= endHour && endHour !== 24) {
+            this.showNotification('L\'ora di fine deve essere dopo l\'ora di inizio', 'error');
+            return false;
+        }
+        
+        this.dayStartHour = startHour;
+        this.dayEndHour = endHour === 24 ? 24 : endHour;
+        
+        await DB.setSetting('dayStartHour', startHour);
+        await DB.setSetting('dayEndHour', this.dayEndHour);
+        
+        return true;
     },
 
     async completeOnboarding() {
+        // Get selected time range
+        const startSelect = document.getElementById('onboard-start-hour');
+        const endSelect = document.getElementById('onboard-end-hour');
+        
+        const startHour = parseInt(startSelect.value);
+        const endHour = parseInt(endSelect.value);
+        
+        // Save time settings
+        await this.saveTimeSettings(startHour, endHour);
+        
         await DB.completeOnboarding();
         document.getElementById('onboarding-modal').classList.remove('open');
         await this.loadApp();
@@ -2172,6 +2236,23 @@ const App = {
             }
         };
         input.click();
+    },
+
+    async saveTimeRangeFromSettings() {
+        const startSelect = document.getElementById('settings-start-hour');
+        const endSelect = document.getElementById('settings-end-hour');
+        
+        const startHour = parseInt(startSelect.value);
+        const endHour = parseInt(endSelect.value);
+        
+        const saved = await this.saveTimeSettings(startHour, endHour);
+        
+        if (saved) {
+            // Re-render grid with new time range
+            this.renderGrid();
+            this.renderScheduledTasks();
+            this.showNotification('Orario aggiornato!', 'success');
+        }
     },
 
     // =====================================
