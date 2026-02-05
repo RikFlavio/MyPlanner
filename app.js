@@ -26,6 +26,7 @@ const App = {
     selectedExistingTask: null, // For autocomplete task selection
     resizeTimer: null, // For debouncing resize events
     searchQuery: '', // For task search
+    events: [], // Events (birthdays, meetings, holidays)
 
     // Category config
     categories: {
@@ -116,6 +117,9 @@ const App = {
         
         // Load special periods and categories
         await this.loadSpecialPeriods();
+        
+        // Load events (birthdays, meetings, holidays)
+        await this.loadEvents();
 
         // Render UI
         this.renderWeekHeader();
@@ -164,6 +168,34 @@ const App = {
             }
         }
         return null;
+    },
+
+    /**
+     * Load events from DB
+     */
+    async loadEvents() {
+        try {
+            this.events = await DB.getAllEvents();
+        } catch (e) {
+            this.events = [];
+        }
+    },
+
+    /**
+     * Get events for a specific date
+     */
+    getEventsForDate(dateStr) {
+        return this.events.filter(event => {
+            if (event.type === 'birthday' || (event.type === 'holiday' && event.recurring)) {
+                // Recurring: match month and day
+                const eventDate = event.date.slice(5); // MM-DD
+                const checkDate = dateStr.slice(5); // MM-DD
+                return eventDate === checkDate;
+            } else {
+                // One-time: exact match
+                return event.date === dateStr;
+            }
+        });
     },
 
     /**
@@ -445,6 +477,9 @@ const App = {
             // Check if this day is in a special period
             const dateStr = this.formatDateLocal(date);
             const period = this.getPeriodForDate(dateStr);
+            
+            // Check for events on this day
+            const dayEvents = this.getEventsForDate(dateStr);
 
             const header = document.createElement('div');
             header.className = `day-header ${isToday ? 'today' : ''}`;
@@ -455,10 +490,22 @@ const App = {
                 header.title = period.categoryName;
             }
             
+            // Build event dots
+            let eventDotsHTML = '';
+            if (dayEvents.length > 0) {
+                const dots = dayEvents.slice(0, 3).map(e => {
+                    const color = e.type === 'birthday' ? '#ec4899' : 
+                                  e.type === 'meeting' ? '#3b82f6' : '#f59e0b';
+                    return `<span class="event-dot" style="background: ${color}" title="${this.escapeHtml(e.name)}"></span>`;
+                }).join('');
+                eventDotsHTML = `<div class="event-dots">${dots}</div>`;
+            }
+            
             header.innerHTML = `
                 <div class="day-name">${dayNames[date.getDay()]}</div>
                 <div class="day-date">${date.getDate()}</div>
                 ${period ? `<div class="period-indicator" style="background: ${period.color}"></div>` : ''}
+                ${eventDotsHTML}
             `;
             headerContainer.appendChild(header);
         }
@@ -763,10 +810,77 @@ const App = {
     renderScheduledTasks() {
         // Remove existing scheduled tasks from grid
         document.querySelectorAll('.scheduled-task').forEach(el => el.remove());
+        // Remove existing meeting blocks
+        document.querySelectorAll('.meeting-block').forEach(el => el.remove());
 
         for (const scheduled of this.schedule) {
             this.renderSingleScheduledTask(scheduled);
         }
+        
+        // Render meetings for current week/day
+        this.renderMeetings();
+    },
+
+    renderMeetings() {
+        const meetings = this.events.filter(e => e.type === 'meeting' && e.time && e.duration);
+        
+        for (const meeting of meetings) {
+            // Check if meeting is in current week
+            const [year, month, day] = meeting.date.split('-').map(Number);
+            const meetingDate = new Date(year, month - 1, day);
+            
+            const dayDiff = Math.round((meetingDate - this.currentWeekStart) / (1000 * 60 * 60 * 24));
+            
+            // Mobile: only show if it's current day
+            if (this.isMobile) {
+                const currentDate = new Date(this.currentWeekStart);
+                currentDate.setDate(currentDate.getDate() + this.currentDayIndex);
+                const currentDateStr = this.formatDateLocal(currentDate);
+                if (meeting.date !== currentDateStr) continue;
+            } else {
+                if (dayDiff < 0 || dayDiff >= 7) continue;
+            }
+            
+            this.renderSingleMeeting(meeting, this.isMobile ? 0 : dayDiff);
+        }
+    },
+
+    renderSingleMeeting(meeting, dayIndex) {
+        const [hours, minutes] = meeting.time.split(':').map(Number);
+        let totalMinutes = hours * 60 + minutes;
+        
+        // Adjust for day start
+        if (hours < this.dayStartHour) {
+            totalMinutes += 24 * 60;
+        }
+        const slotStart = Math.floor((totalMinutes - this.dayStartHour * 60) / this.slotDuration);
+        
+        const cell = document.querySelector(`.grid-cell[data-day="${dayIndex}"][data-slot="${slotStart}"]`);
+        if (!cell) return;
+        
+        const slotHeight = this.isMobile ? 60 : 40;
+        const slotsNeeded = Math.ceil(meeting.duration / this.slotDuration);
+        const blockHeight = slotsNeeded * slotHeight - 4;
+        
+        // Calculate end time
+        const endMinutes = totalMinutes + meeting.duration;
+        const endH = Math.floor(endMinutes / 60) % 24;
+        const endM = endMinutes % 60;
+        const endTime = `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
+        
+        const meetingEl = document.createElement('div');
+        meetingEl.className = 'meeting-block';
+        meetingEl.style.height = `${blockHeight}px`;
+        meetingEl.dataset.eventId = meeting.id;
+        meetingEl.innerHTML = `
+            <div class="meeting-content">
+                <div class="meeting-name">📅 ${this.escapeHtml(meeting.name)}</div>
+                <div class="meeting-time">${meeting.time} - ${endTime}</div>
+            </div>
+        `;
+        
+        cell.style.position = 'relative';
+        cell.appendChild(meetingEl);
     },
 
     renderSingleScheduledTask(scheduled) {

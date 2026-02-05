@@ -113,6 +113,7 @@
             categories: [],
             editingPeriodId: null,
             selectedColor: '#6366f1',
+            events: [],
 
             colors: [
                 '#ef4444', '#f97316', '#f59e0b', '#eab308',
@@ -149,10 +150,12 @@
                 try {
                     this.categories = await DB.getSetting('periodCategories') || [];
                     this.periods = await DB.getSetting('specialPeriods') || [];
+                    this.events = await DB.getAllEvents() || [];
                 } catch (e) {
                     console.error('Error loading data:', e);
                     this.categories = [];
                     this.periods = [];
+                    this.events = [];
                 }
             },
 
@@ -259,6 +262,7 @@
                     const dateStr = `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                     const isToday = dateStr === todayStr;
                     const period = this.getPeriodForDate(dateStr);
+                    const dayEvents = this.getEventsForDate(dateStr);
                     
                     let classes = 'day';
                     let style = '';
@@ -270,10 +274,33 @@
                         if (dateStr === period.startDate) classes += ' period-start';
                         if (dateStr === period.endDate) classes += ' period-end';
                     }
+                    
+                    // Build event dots
+                    let eventDots = '';
+                    if (dayEvents.length > 0) {
+                        const dots = dayEvents.slice(0, 3).map(e => {
+                            const color = e.type === 'birthday' ? '#ec4899' : 
+                                          e.type === 'meeting' ? '#3b82f6' : '#f59e0b';
+                            return `<span class="cal-event-dot" style="background: ${color}"></span>`;
+                        }).join('');
+                        eventDots = `<div class="cal-event-dots">${dots}</div>`;
+                    }
 
-                    html += `<div class="${classes}" style="${style}" onclick="CalendarApp.onDayClick('${dateStr}')">${day}</div>`;
+                    html += `<div class="${classes}" style="${style}" onclick="CalendarApp.onDayClick('${dateStr}')">${day}${eventDots}</div>`;
                 }
                 return html;
+            },
+
+            getEventsForDate(dateStr) {
+                return this.events.filter(event => {
+                    if (event.type === 'birthday' || (event.type === 'holiday' && event.recurring)) {
+                        const eventDate = event.date.slice(5);
+                        const checkDate = dateStr.slice(5);
+                        return eventDate === checkDate;
+                    } else {
+                        return event.date === dateStr;
+                    }
+                });
             },
 
             getPeriodForDate(dateStr) {

@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eventi - My Planner</title>
+    <link rel="icon" type="image/png" href="img/MyPlanner.png">
+    <link rel="stylesheet" href="styles-pages.css">
+</head>
+<body>
+    <div class="container events-container">
+        <div class="header">
+            <a href="index.html" class="back-btn">←</a>
+            <div class="header-title">
+                <h1>📌 Eventi & Ricorrenze</h1>
+            </div>
+            <button class="theme-btn" onclick="EventsApp.toggleTheme()" title="Cambia tema">
+                <span id="theme-icon">☀️</span>
+            </button>
+        </div>
+
+        <!-- Add Event Form -->
+        <div class="event-form-card">
+            <div class="form-tabs">
+                <button class="tab-btn active" data-type="birthday" onclick="EventsApp.selectType('birthday')">
+                    🎂 Compleanno
+                </button>
+                <button class="tab-btn" data-type="meeting" onclick="EventsApp.selectType('meeting')">
+                    📅 Riunione
+                </button>
+                <button class="tab-btn" data-type="holiday" onclick="EventsApp.selectType('holiday')">
+                    🎉 Festività
+                </button>
+            </div>
+            
+            <form id="event-form" onsubmit="EventsApp.addEvent(event)">
+                <div class="form-row">
+                    <div class="form-group flex-1">
+                        <label for="event-name">Nome</label>
+                        <input type="text" id="event-name" placeholder="Es. Compleanno Mario" required maxlength="50">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="event-date">Data</label>
+                        <input type="date" id="event-date" required>
+                    </div>
+                    <div class="form-group time-group" id="time-group" style="display: none;">
+                        <label for="event-time">Ora</label>
+                        <input type="time" id="event-time">
+                    </div>
+                    <div class="form-group duration-group" id="duration-group" style="display: none;">
+                        <label for="event-duration">Durata</label>
+                        <select id="event-duration">
+                            <option value="30">30 min</option>
+                            <option value="60" selected>1 ora</option>
+                            <option value="90">1.5 ore</option>
+                            <option value="120">2 ore</option>
+                            <option value="180">3 ore</option>
+                            <option value="240">4 ore</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-row" id="recurring-row">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="event-recurring" checked>
+                        <span>Ricorrenza annuale</span>
+                    </label>
+                </div>
+                
+                <button type="submit" class="btn btn-primary btn-full">
+                    <span id="form-btn-icon">🎂</span> Aggiungi
+                </button>
+            </form>
+        </div>
+
+        <!-- Events List -->
+        <div class="events-sections">
+            <!-- Birthdays -->
+            <div class="events-section" id="birthdays-section">
+                <div class="section-header">
+                    <h2>🎂 Compleanni</h2>
+                    <span class="section-count" id="birthdays-count">0</span>
+                </div>
+                <div class="events-list" id="birthdays-list">
+                    <p class="empty-message">Nessun compleanno inserito</p>
+                </div>
+            </div>
+
+            <!-- Meetings -->
+            <div class="events-section" id="meetings-section">
+                <div class="section-header">
+                    <h2>📅 Riunioni & Appuntamenti</h2>
+                    <span class="section-count" id="meetings-count">0</span>
+                </div>
+                <div class="events-list" id="meetings-list">
+                    <p class="empty-message">Nessuna riunione inserita</p>
+                </div>
+            </div>
+
+            <!-- Holidays -->
+            <div class="events-section" id="holidays-section">
+                <div class="section-header">
+                    <h2>🎉 Festività</h2>
+                    <span class="section-count" id="holidays-count">0</span>
+                </div>
+                <div class="events-list" id="holidays-list">
+                    <p class="empty-message">Nessuna festività inserita</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="db.js"></script>
+    <script>
+        const EventsApp = {
+            events: [],
+            selectedType: 'birthday',
+
+            async init() {
+                const theme = localStorage.getItem('flowday-theme') || 'dark';
+                document.documentElement.setAttribute('data-theme', theme);
+                document.getElementById('theme-icon').textContent = theme === 'light' ? '🌙' : '☀️';
+
+                await DB.init();
+                await this.loadEvents();
+                this.render();
+            },
+
+            async loadEvents() {
+                this.events = await DB.getAllEvents();
+            },
+
+            selectType(type) {
+                this.selectedType = type;
+                
+                // Update tabs
+                document.querySelectorAll('.tab-btn').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.type === type);
+                });
+                
+                // Show/hide time input
+                const timeGroup = document.getElementById('time-group');
+                const recurringRow = document.getElementById('recurring-row');
+                const formBtnIcon = document.getElementById('form-btn-icon');
+                
+                if (type === 'meeting') {
+                    timeGroup.style.display = 'block';
+                    document.getElementById('duration-group').style.display = 'block';
+                    recurringRow.style.display = 'none';
+                    formBtnIcon.textContent = '📅';
+                } else {
+                    timeGroup.style.display = 'none';
+                    document.getElementById('duration-group').style.display = 'none';
+                    recurringRow.style.display = 'flex';
+                    formBtnIcon.textContent = type === 'birthday' ? '🎂' : '🎉';
+                }
+                
+                // Update placeholder
+                const nameInput = document.getElementById('event-name');
+                if (type === 'birthday') {
+                    nameInput.placeholder = 'Es. Compleanno Mario';
+                } else if (type === 'meeting') {
+                    nameInput.placeholder = 'Es. Riunione progetto X';
+                } else {
+                    nameInput.placeholder = 'Es. Natale, Ferragosto';
+                }
+            },
+
+            async addEvent(e) {
+                e.preventDefault();
+                
+                const name = document.getElementById('event-name').value.trim();
+                const date = document.getElementById('event-date').value;
+                const time = document.getElementById('event-time').value;
+                const duration = document.getElementById('event-duration').value;
+                const recurring = document.getElementById('event-recurring').checked;
+                
+                if (!name || !date) return;
+                
+                const event = {
+                    name,
+                    date,
+                    type: this.selectedType,
+                    recurring: this.selectedType !== 'meeting' ? recurring : false
+                };
+                
+                if (this.selectedType === 'meeting') {
+                    if (time) event.time = time;
+                    event.duration = parseInt(duration);
+                }
+                
+                await DB.addEvent(event);
+                await this.loadEvents();
+                this.render();
+                
+                // Reset form
+                document.getElementById('event-form').reset();
+                document.getElementById('event-recurring').checked = true;
+            },
+
+            async deleteEvent(id) {
+                await DB.deleteEvent(id);
+                await this.loadEvents();
+                this.render();
+            },
+
+            render() {
+                const birthdays = this.events.filter(e => e.type === 'birthday');
+                const meetings = this.events.filter(e => e.type === 'meeting');
+                const holidays = this.events.filter(e => e.type === 'holiday');
+                
+                this.renderList('birthdays', birthdays);
+                this.renderList('meetings', meetings);
+                this.renderList('holidays', holidays);
+            },
+
+            renderList(type, events) {
+                const list = document.getElementById(`${type}-list`);
+                const count = document.getElementById(`${type}-count`);
+                
+                count.textContent = events.length;
+                
+                if (events.length === 0) {
+                    list.innerHTML = '<p class="empty-message">Nessun elemento inserito</p>';
+                    return;
+                }
+                
+                // Sort by date
+                events.sort((a, b) => {
+                    const dateA = a.date.slice(5); // MM-DD
+                    const dateB = b.date.slice(5);
+                    return dateA.localeCompare(dateB);
+                });
+                
+                list.innerHTML = events.map(event => {
+                    const dateObj = new Date(event.date + 'T00:00:00');
+                    const day = dateObj.getDate();
+                    const month = dateObj.toLocaleDateString('it-IT', { month: 'short' });
+                    const year = dateObj.getFullYear();
+                    
+                    let dateDisplay = `${day} ${month}`;
+                    if (event.type === 'meeting' || !event.recurring) {
+                        dateDisplay += ` ${year}`;
+                    }
+                    if (event.time) {
+                        dateDisplay += ` • ${event.time}`;
+                    }
+                    if (event.duration) {
+                        const h = Math.floor(event.duration / 60);
+                        const m = event.duration % 60;
+                        dateDisplay += ` • ${h > 0 ? h + 'h' : ''}${m > 0 ? m + 'm' : ''}`;
+                    }
+                    
+                    const icon = event.type === 'birthday' ? '🎂' : 
+                                 event.type === 'meeting' ? '📅' : '🎉';
+                    
+                    return `
+                        <div class="event-item" data-type="${event.type}">
+                            <span class="event-icon">${icon}</span>
+                            <div class="event-info">
+                                <span class="event-name">${this.escapeHtml(event.name)}</span>
+                                <span class="event-date">${dateDisplay}</span>
+                            </div>
+                            ${event.recurring ? '<span class="recurring-badge">🔄</span>' : ''}
+                            <button class="event-delete" onclick="EventsApp.deleteEvent('${event.id}')" title="Elimina">×</button>
+                        </div>
+                    `;
+                }).join('');
+            },
+
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            },
+
+            toggleTheme() {
+                const current = document.documentElement.getAttribute('data-theme');
+                const newTheme = current === 'light' ? 'dark' : 'light';
+                document.documentElement.setAttribute('data-theme', newTheme);
+                localStorage.setItem('flowday-theme', newTheme);
+                document.getElementById('theme-icon').textContent = newTheme === 'light' ? '🌙' : '☀️';
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', () => EventsApp.init());
+    </script>
+</body>
+</html>

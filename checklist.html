@@ -100,8 +100,9 @@
                              draggable="true">
                             <span class="drag-handle">⋮⋮</span>
                             <div class="checkbox" onclick="ChecklistApp.toggleItem(${index})"></div>
-                            <span class="item-text">${this.escapeHtml(item.text)}</span>
-                            <button class="item-delete" onclick="ChecklistApp.deleteItem(${index})">×</button>
+                            <span class="item-text" ondblclick="ChecklistApp.editItem(${index})">${this.escapeHtml(item.text)}</span>
+                            <button class="item-edit" onclick="ChecklistApp.editItem(${index})" title="Modifica">✎</button>
+                            <button class="item-delete" onclick="ChecklistApp.deleteItem(${index})" title="Elimina">×</button>
                         </div>
                     `).join('');
                 }
@@ -354,6 +355,44 @@
 
                 await this.saveTask();
                 this.render();
+            },
+
+            editItem(index) {
+                if (!this.task.checklist || !this.task.checklist[index]) return;
+                
+                const item = this.task.checklist[index];
+                const itemEl = document.querySelector(`.checklist-item[data-index="${index}"]`);
+                const textEl = itemEl.querySelector('.item-text');
+                
+                // Sostituisci testo con input
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.className = 'item-edit-input';
+                input.value = item.text;
+                input.maxLength = 100;
+                
+                const saveEdit = async () => {
+                    const newText = input.value.trim();
+                    if (newText && newText !== item.text) {
+                        this.task.checklist[index].text = newText;
+                        await this.saveTask();
+                    }
+                    this.render();
+                };
+                
+                input.addEventListener('blur', saveEdit);
+                input.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        input.blur();
+                    } else if (e.key === 'Escape') {
+                        this.render();
+                    }
+                });
+                
+                textEl.replaceWith(input);
+                input.focus();
+                input.select();
             },
 
             async saveTask() {

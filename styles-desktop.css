@@ -1128,6 +1128,21 @@ h1, h2, h3, h4 {
     height: 3px;
 }
 
+/* Event dots in day header */
+.day-header .event-dots {
+    display: flex;
+    justify-content: center;
+    gap: 3px;
+    margin-top: 4px;
+}
+
+.day-header .event-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
 /* Grid Body */
 .grid-body {
     display: flex;
@@ -1348,6 +1363,56 @@ body.is-dragging-scheduled .grid-cell {
     opacity: 0.5;
     background: rgba(245, 158, 11, 0.1);
     border-color: var(--warning);
+}
+
+/* Meeting Blocks in Grid */
+.meeting-block {
+    position: absolute;
+    top: 0;
+    left: 2px;
+    right: 2px;
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.25), rgba(139, 92, 246, 0.15));
+    border: 1px solid rgba(139, 92, 246, 0.5);
+    border-radius: var(--radius-sm);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    overflow: hidden;
+    z-index: 3;
+    backdrop-filter: blur(10px);
+    pointer-events: auto;
+}
+
+.meeting-block::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: #8b5cf6;
+}
+
+.meeting-content {
+    padding-left: var(--spacing-xs);
+}
+
+.meeting-name {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.meeting-time {
+    font-size: 0.65rem;
+    color: var(--text-secondary);
+    font-family: 'JetBrains Mono', monospace;
+}
+
+[data-theme="light"] .meeting-block {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(139, 92, 246, 0.1));
+    border-color: rgba(139, 92, 246, 0.4);
 }
 
 /* ===================================

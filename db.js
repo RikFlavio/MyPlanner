@@ -5,7 +5,7 @@
 
 const DB = {
     name: 'FlowDayDB',
-    version: 1,
+    version: 2,
     db: null,
 
     // Store names
@@ -14,7 +14,8 @@ const DB = {
         schedule: 'schedule',
         history: 'history',
         patterns: 'patterns',
-        settings: 'settings'
+        settings: 'settings',
+        events: 'events'
     },
 
     /**
@@ -71,6 +72,14 @@ const DB = {
                 // Settings store - user preferences
                 if (!db.objectStoreNames.contains(this.stores.settings)) {
                     db.createObjectStore(this.stores.settings, { keyPath: 'key' });
+                }
+
+                // Events store - birthdays, meetings, holidays
+                if (!db.objectStoreNames.contains(this.stores.events)) {
+                    const eventStore = db.createObjectStore(this.stores.events, { keyPath: 'id' });
+                    eventStore.createIndex('type', 'type', { unique: false });
+                    eventStore.createIndex('date', 'date', { unique: false });
+                    eventStore.createIndex('month', 'month', { unique: false });
                 }
 
                 console.log('Database schema created/updated');
@@ -404,5 +413,73 @@ const DB = {
      */
     async setLastBackupDate() {
         return this.setSetting('lastBackupDate', new Date().toISOString());
+    },
+
+    // =====================================
+    // Events (birthdays, meetings, holidays)
+    // =====================================
+
+    async addEvent(event) {
+        event.id = event.id || this.generateId();
+        event.createdAt = new Date().toISOString();
+        return this.add(this.stores.events, event);
+    },
+
+    async updateEvent(event) {
+        event.updatedAt = new Date().toISOString();
+        return this.put(this.stores.events, event);
+    },
+
+    async deleteEvent(id) {
+        return this.delete(this.stores.events, id);
+    },
+
+    async getAllEvents() {
+        return this.getAll(this.stores.events);
+    },
+
+    async getEventsByType(type) {
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(this.stores.events, 'readonly');
+            const store = transaction.objectStore(this.stores.events);
+            const index = store.index('type');
+            const request = index.getAll(type);
+            
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+    },
+
+    async getEventsForDate(dateStr) {
+        const allEvents = await this.getAllEvents();
+        return allEvents.filter(event => {
+            if (event.type === 'birthday' || event.type === 'holiday') {
+                // Recurring: match month and day
+                const eventDate = event.date.slice(5); // MM-DD
+                const checkDate = dateStr.slice(5); // MM-DD
+                return eventDate === checkDate;
+            } else {
+                // One-time: exact match
+                return event.date === dateStr;
+            }
+        });
+    },
+
+    async getEventsForMonth(year, month) {
+        const allEvents = await this.getAllEvents();
+        const monthStr = month.toString().padStart(2, '0');
+        
+        return allEvents.filter(event => {
+            const eventMonth = event.date.slice(5, 7);
+            const eventYear = event.date.slice(0, 4);
+            
+            if (event.type === 'birthday' || (event.type === 'holiday' && event.recurring)) {
+                // Recurring: match month only
+                return eventMonth === monthStr;
+            } else {
+                // One-time: match year and month
+                return eventYear === year.toString() && eventMonth === monthStr;
+            }
+        });
     }
 };
