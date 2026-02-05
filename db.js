@@ -239,7 +239,8 @@ const DB = {
             schedule: await this.getAll(this.stores.schedule),
             history: await this.getAll(this.stores.history),
             patterns: await this.getAll(this.stores.patterns),
-            settings: await this.getAll(this.stores.settings)
+            settings: await this.getAll(this.stores.settings),
+            events: await this.getAll(this.stores.events)
         };
         return data;
     },
@@ -270,6 +271,9 @@ const DB = {
         }
         for (const setting of data.settings || []) {
             await this.put(this.stores.settings, setting);
+        }
+        for (const event of data.events || []) {
+            await this.add(this.stores.events, event);
         }
 
         return true;
