@@ -858,4 +858,38 @@
         height: 4px;
         opacity: 0.5;
     }
+
+    /* Timer panel mobile */
+    .timer-panel {
+        width: 100%;
+        max-width: none;
+        border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    }
+
+    .timer-panel.active {
+        bottom: var(--mobile-bar-height);
+    }
+
+    .timer-display {
+        font-size: 3rem;
+    }
+
+    .timer-controls {
+        flex-wrap: wrap;
+    }
+
+    .timer-btn {
+        padding: 14px 18px;
+    }
+
+    /* Task info modal mobile */
+    .task-info-modal {
+        max-width: none;
+        margin: var(--spacing-md);
+    }
+
+    .timer-confirm-modal {
+        max-width: none;
+        margin: var(--spacing-md);
+    }
 }

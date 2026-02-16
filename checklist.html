@@ -101,6 +101,7 @@
                             <span class="drag-handle">⋮⋮</span>
                             <div class="checkbox" onclick="ChecklistApp.toggleItem(${index})"></div>
                             <span class="item-text" ondblclick="ChecklistApp.editItem(${index})">${this.escapeHtml(item.text)}</span>
+                            <button class="item-timer" onclick="window.location.href='timer.html?taskId=${this.taskId}&itemIndex=${index}&return=checklist.html?taskId=${this.taskId}'" title="Avvia timer">⏱️</button>
                             <button class="item-edit" onclick="ChecklistApp.editItem(${index})" title="Modifica">✎</button>
                             <button class="item-delete" onclick="ChecklistApp.deleteItem(${index})" title="Elimina">×</button>
                         </div>

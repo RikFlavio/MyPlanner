@@ -939,19 +939,26 @@ const App = {
         }
 
         const taskEl = document.createElement('div');
-        taskEl.className = `scheduled-task ${scheduled.status || ''} ${(isCompleted && hasActualTimes) ? 'has-actual' : ''} ${canDrag ? 'draggable' : ''}`;
+        
+        // Check if this is a focus session
+        const isFocusSession = scheduled.isFocusSession;
+        
+        taskEl.className = `scheduled-task ${scheduled.status || ''} ${(isCompleted && hasActualTimes) ? 'has-actual' : ''} ${canDrag ? 'draggable' : ''} ${isFocusSession ? 'focus-session' : ''}`;
         taskEl.style.cssText = `
             --task-color: ${cat.color};
             height: ${taskHeight}px;
         `;
         taskEl.dataset.scheduleId = scheduled.id;
         
+        // Focus sessions show only category name
+        const displayName = isFocusSession ? cat.name : this.escapeHtml(task.name);
+        
         if (canDrag) {
             taskEl.draggable = true;
             taskEl.innerHTML = `
                 <div class="st-drag-handle">⋮⋮</div>
                 <div class="st-content">
-                    <div class="st-name">${cat.icon} ${this.escapeHtml(task.name)}</div>
+                    <div class="st-name">${cat.icon} ${displayName}</div>
                     ${timeHTML}
                 </div>
                 <div class="resize-handle"></div>
@@ -972,7 +979,7 @@ const App = {
             resizeHandle.addEventListener('touchstart', (e) => this.handleResizeTouchStart(e, scheduled, taskEl));
         } else {
             taskEl.innerHTML = `
-                <div class="st-name">${cat.icon} ${this.escapeHtml(task.name)}</div>
+                <div class="st-name">${cat.icon} ${displayName}</div>
                 ${timeHTML}
             `;
         }

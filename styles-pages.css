@@ -810,6 +810,16 @@ body {
     font-weight: 600;
 }
 
+.day.today.in-period {
+    box-shadow: 0 0 0 3px white, 0 0 0 5px var(--accent-primary);
+    z-index: 2;
+    position: relative;
+}
+
+[data-theme="dark"] .day.today.in-period {
+    box-shadow: 0 0 0 2px var(--bg-primary), 0 0 0 4px white;
+}
+
 .day.in-period {
     color: white;
     font-weight: 500;
@@ -1671,4 +1681,26 @@ body {
     .event-delete {
         opacity: 1;
     }
+}
+
+/* ===================================
+   Timer Panel (Checklist)
+   =================================== */
+
+.item-timer {
+    background: rgba(99, 102, 241, 0.1);
+    border: 1px solid var(--accent-primary);
+    color: var(--accent-primary);
+    cursor: pointer;
+    padding: 8px 10px;
+    font-size: 1rem;
+    transition: all var(--transition-fast);
+    border-radius: var(--radius-md);
+    flex-shrink: 0;
+}
+
+.item-timer:hover,
+.item-timer:active {
+    background: var(--accent-primary);
+    color: white;
 }
