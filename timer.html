@@ -552,6 +552,9 @@
                 remaining: 0,
                 elapsed: 0,
                 startTime: null,
+                startTimestamp: null, // timestamp reale di inizio
+                pausedAt: null, // timestamp quando messo in pausa
+                totalPausedTime: 0, // tempo totale in pausa
                 endTime: null,
                 interval: null,
                 isRunning: false,
@@ -648,9 +651,11 @@
 
             start() {
                 this.state.startTime = new Date();
+                this.state.startTimestamp = Date.now();
+                this.state.totalPausedTime = 0;
+                this.state.pausedAt = null;
                 this.state.isRunning = true;
                 this.state.isPaused = false;
-                this.state.elapsed = 0;
 
                 if (this.state.mode === 'countdown') {
                     this.state.remaining = this.state.duration * 60;
@@ -663,17 +668,20 @@
                 document.getElementById('mode-selector').classList.add('hidden');
                 document.getElementById('duration-selector').classList.add('hidden');
 
-                this.state.interval = setInterval(() => this.tick(), 1000);
+                this.state.interval = setInterval(() => this.tick(), 100);
             },
 
             tick() {
                 if (this.state.isPaused) return;
 
-                this.state.elapsed++;
+                // Calcola tempo trascorso reale (escludendo pause)
+                const now = Date.now();
+                this.state.elapsed = Math.floor((now - this.state.startTimestamp - this.state.totalPausedTime) / 1000);
 
                 if (this.state.mode === 'countdown') {
-                    this.state.remaining--;
+                    this.state.remaining = (this.state.duration * 60) - this.state.elapsed;
                     if (this.state.remaining <= 0) {
+                        this.state.remaining = 0;
                         this.complete();
                         return;
                     }
@@ -707,6 +715,15 @@
             },
 
             togglePause() {
+                if (this.state.isPaused) {
+                    // Riprendendo: calcola tempo passato in pausa
+                    this.state.totalPausedTime += Date.now() - this.state.pausedAt;
+                    this.state.pausedAt = null;
+                } else {
+                    // Mettendo in pausa: salva quando
+                    this.state.pausedAt = Date.now();
+                }
+                
                 this.state.isPaused = !this.state.isPaused;
                 document.getElementById('btn-pause').textContent = this.state.isPaused ? '▶️' : '⏸️';
             },
@@ -756,6 +773,9 @@
                 }
 
                 this.state.elapsed = 0;
+                this.state.startTimestamp = null;
+                this.state.totalPausedTime = 0;
+                this.state.pausedAt = null;
                 this.updateDisplay();
             },
 
