@@ -883,7 +883,7 @@
 
             async exportData() {
                 try {
-                    const data = await DB.exportAll();
+                    const data = await DB.exportData();
                     const json = JSON.stringify(data, null, 2);
                     const blob = new Blob([json], { type: 'application/json' });
                     const url = URL.createObjectURL(blob);
@@ -909,11 +909,7 @@
                     const text = await file.text();
                     const data = JSON.parse(text);
                     
-                    if (!data.tasks && !data.events && !data.schedule) {
-                        throw new Error('Formato non valido');
-                    }
-                    
-                    await DB.importAll(data);
+                    await DB.importData(data);
                     await this.loadData();
                     this.showToast('✓ Dati importati');
                     this.setNav('home');
