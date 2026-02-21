@@ -850,10 +850,27 @@
                             <span class="setting-value">→</span>
                         </div>
                         
-                        <div class="setting-item" onclick="window.location.href='index.html'">
+                        <div class="setting-item" onclick="window.location.href='index.html?desktop=true'">
                             <span class="setting-label">Versione Desktop</span>
                             <span class="setting-value">→</span>
                         </div>
+                    </div>
+                    
+                    <div class="card" style="margin-top: 16px;">
+                        <div class="card-header">
+                            <span class="card-title">Backup Dati</span>
+                        </div>
+                        
+                        <div class="setting-item" onclick="App.exportData()">
+                            <span class="setting-label">📤 Esporta JSON</span>
+                            <span class="setting-value">→</span>
+                        </div>
+                        
+                        <div class="setting-item" onclick="document.getElementById('import-file').click()">
+                            <span class="setting-label">📥 Importa JSON</span>
+                            <span class="setting-value">→</span>
+                        </div>
+                        <input type="file" id="import-file" accept=".json" style="display:none" onchange="App.importData(event)">
                     </div>
                     
                     <div class="card" style="margin-top: 16px; text-align: center; padding: 24px;">
@@ -862,6 +879,83 @@
                         <div style="color: var(--text-muted); font-size: 0.75rem; margin-top: 4px;">v1.0</div>
                     </div>
                 `;
+            },
+
+            async exportData() {
+                try {
+                    const data = await DB.exportAll();
+                    const json = JSON.stringify(data, null, 2);
+                    const blob = new Blob([json], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `myplanner-backup-${new Date().toISOString().slice(0,10)}.json`;
+                    a.click();
+                    
+                    URL.revokeObjectURL(url);
+                    this.showToast('✓ Backup esportato');
+                } catch (e) {
+                    console.error('Export error:', e);
+                    this.showToast('Errore durante l\'export');
+                }
+            },
+
+            async importData(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                try {
+                    const text = await file.text();
+                    const data = JSON.parse(text);
+                    
+                    if (!data.tasks && !data.events && !data.schedule) {
+                        throw new Error('Formato non valido');
+                    }
+                    
+                    await DB.importAll(data);
+                    await this.loadData();
+                    this.showToast('✓ Dati importati');
+                    this.setNav('home');
+                    this.render();
+                } catch (e) {
+                    console.error('Import error:', e);
+                    this.showToast('Errore: file non valido');
+                }
+                
+                event.target.value = '';
+            },
+
+            showToast(message) {
+                // Crea toast se non esiste
+                let toast = document.getElementById('toast');
+                if (!toast) {
+                    toast = document.createElement('div');
+                    toast.id = 'toast';
+                    toast.style.cssText = `
+                        position: fixed;
+                        bottom: 100px;
+                        left: 50%;
+                        transform: translateX(-50%);
+                        background: var(--bg-secondary);
+                        border: 1px solid var(--glass-border);
+                        color: var(--text-primary);
+                        padding: 12px 24px;
+                        border-radius: 12px;
+                        font-size: 0.9rem;
+                        z-index: 9999;
+                        opacity: 0;
+                        transition: opacity 0.3s ease;
+                    `;
+                    document.body.appendChild(toast);
+                }
+                
+                toast.textContent = message;
+                toast.style.opacity = '1';
+                
+                setTimeout(() => {
+                    toast.style.opacity = '0';
+                }, 2500);
             },
 
             toggleTheme() {
