@@ -5,55 +5,678 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Eventi - My Planner</title>
     <link rel="icon" type="image/png" href="img/MyPlanner.png">
-    <link rel="stylesheet" href="styles-pages.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-card: rgba(255, 255, 255, 0.03);
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-hover: rgba(255, 255, 255, 0.08);
+            --text-primary: #f0f0f5;
+            --text-secondary: #a0a0b0;
+            --text-muted: #606070;
+            --accent-primary: #6366f1;
+            --accent-secondary: #8b5cf6;
+            --accent-gradient: linear-gradient(135deg, #6366f1, #8b5cf6);
+            --birthday-color: #ec4899;
+            --birthday-bg: rgba(236, 72, 153, 0.1);
+            --meeting-color: #3b82f6;
+            --meeting-bg: rgba(59, 130, 246, 0.1);
+            --holiday-color: #f59e0b;
+            --holiday-bg: rgba(245, 158, 11, 0.1);
+            --success: #22c55e;
+            --danger: #ef4444;
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 24px;
+            --shadow-lg: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        [data-theme="light"] {
+            --bg-primary: #f5f5f7;
+            --bg-secondary: #ffffff;
+            --bg-card: rgba(255, 255, 255, 0.8);
+            --glass-bg: rgba(255, 255, 255, 0.7);
+            --glass-border: rgba(0, 0, 0, 0.06);
+            --glass-hover: rgba(0, 0, 0, 0.04);
+            --text-primary: #1a1a2e;
+            --text-secondary: #4a4a5a;
+            --text-muted: #8a8a9a;
+            --shadow-lg: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.5;
+        }
+
+        /* Animated Background */
+        .bg-gradient {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(ellipse at 20% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 50%, rgba(236, 72, 153, 0.05) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        [data-theme="light"] .bg-gradient {
+            background: 
+                radial-gradient(ellipse at 20% 20%, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(139, 92, 246, 0.05) 0%, transparent 50%);
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 24px;
+            padding-bottom: 100px;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .back-btn {
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 50%;
+            color: var(--text-primary);
+            text-decoration: none;
+            font-size: 1.3rem;
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            background: var(--glass-hover);
+            transform: translateX(-4px);
+        }
+
+        .header-content {
+            flex: 1;
+        }
+
+        .header-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header-subtitle {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-top: 2px;
+        }
+
+        .theme-btn {
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+        }
+
+        .theme-btn:hover {
+            background: var(--glass-hover);
+            transform: rotate(20deg);
+        }
+
+        /* Type Selector */
+        .type-selector {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .type-card {
+            flex: 1;
+            padding: 20px 16px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 2px solid var(--glass-border);
+            border-radius: var(--radius-lg);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .type-card:hover {
+            background: var(--glass-hover);
+            transform: translateY(-2px);
+        }
+
+        .type-card.active {
+            border-color: var(--type-color);
+            background: var(--type-bg);
+        }
+
+        .type-card[data-type="birthday"] {
+            --type-color: var(--birthday-color);
+            --type-bg: var(--birthday-bg);
+        }
+
+        .type-card[data-type="meeting"] {
+            --type-color: var(--meeting-color);
+            --type-bg: var(--meeting-bg);
+        }
+
+        .type-card[data-type="holiday"] {
+            --type-color: var(--holiday-color);
+            --type-bg: var(--holiday-bg);
+        }
+
+        .type-card.active .type-icon {
+            transform: scale(1.2);
+        }
+
+        .type-icon {
+            font-size: 2rem;
+            display: block;
+            margin-bottom: 8px;
+            transition: transform 0.3s ease;
+        }
+
+        .type-label {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .type-card.active .type-label {
+            color: var(--type-color);
+        }
+
+        /* Form Card */
+        .form-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-xl);
+            padding: 28px;
+            margin-bottom: 32px;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .form-row {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            flex: 1;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 14px 18px;
+            background: var(--bg-primary);
+            border: 2px solid var(--glass-border);
+            border-radius: var(--radius-md);
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
+        }
+
+        .form-group input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .checkbox-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+        }
+
+        .checkbox-label input[type="checkbox"] {
+            width: 22px;
+            height: 22px;
+            accent-color: var(--accent-primary);
+            cursor: pointer;
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 16px 24px;
+            background: var(--accent-gradient);
+            border: none;
+            border-radius: var(--radius-md);
+            color: white;
+            font-family: inherit;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-submit:active {
+            transform: translateY(0);
+        }
+
+        /* Section */
+        .section {
+            margin-bottom: 32px;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            padding: 0 4px;
+        }
+
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .section-title .icon {
+            font-size: 1.3rem;
+        }
+
+        .section-count {
+            padding: 4px 12px;
+            background: var(--glass-bg);
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-muted);
+        }
+
+        /* Event Card */
+        .events-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .event-card {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 18px 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-lg);
+            transition: all 0.3s ease;
+            animation: slideIn 0.4s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .event-card:hover {
+            background: var(--glass-hover);
+            transform: translateX(4px);
+        }
+
+        .event-card[data-type="birthday"] {
+            border-left: 3px solid var(--birthday-color);
+        }
+
+        .event-card[data-type="meeting"] {
+            border-left: 3px solid var(--meeting-color);
+        }
+
+        .event-card[data-type="holiday"] {
+            border-left: 3px solid var(--holiday-color);
+        }
+
+        .event-icon-wrapper {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: var(--radius-md);
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        }
+
+        .event-card[data-type="birthday"] .event-icon-wrapper {
+            background: var(--birthday-bg);
+        }
+
+        .event-card[data-type="meeting"] .event-icon-wrapper {
+            background: var(--meeting-bg);
+        }
+
+        .event-card[data-type="holiday"] .event-icon-wrapper {
+            background: var(--holiday-bg);
+        }
+
+        .event-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .event-name {
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .event-meta {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 4px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .event-date-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .recurring-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            background: rgba(99, 102, 241, 0.15);
+            color: var(--accent-primary);
+            border-radius: 10px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .event-delete {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-md);
+            color: var(--text-muted);
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            opacity: 0;
+            flex-shrink: 0;
+        }
+
+        .event-card:hover .event-delete {
+            opacity: 1;
+        }
+
+        .event-delete:hover {
+            background: var(--danger);
+            border-color: var(--danger);
+            color: white;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted);
+        }
+
+        .empty-state .icon {
+            font-size: 3rem;
+            margin-bottom: 12px;
+            opacity: 0.5;
+        }
+
+        .empty-state p {
+            font-size: 0.95rem;
+        }
+
+        /* Upcoming Badge */
+        .upcoming-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 10px;
+            background: var(--success);
+            color: white;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        /* Duration Selector for Meetings */
+        .duration-group {
+            display: none;
+        }
+
+        .duration-group.visible {
+            display: block;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 600px) {
+            .container {
+                padding: 16px;
+                padding-bottom: 80px;
+            }
+
+            .header {
+                margin-bottom: 24px;
+            }
+
+            .header-title {
+                font-size: 1.4rem;
+            }
+
+            .type-selector {
+                gap: 8px;
+            }
+
+            .type-card {
+                padding: 16px 12px;
+            }
+
+            .type-icon {
+                font-size: 1.6rem;
+            }
+
+            .type-label {
+                font-size: 0.75rem;
+            }
+
+            .form-card {
+                padding: 20px;
+            }
+
+            .form-row {
+                flex-direction: column;
+                gap: 16px;
+            }
+
+            .event-card {
+                padding: 14px 16px;
+            }
+
+            .event-icon-wrapper {
+                width: 44px;
+                height: 44px;
+                font-size: 1.3rem;
+            }
+
+            .event-delete {
+                opacity: 1;
+                width: 36px;
+                height: 36px;
+            }
+        }
+
+        /* Duration selector */
+        .form-group select {
+            width: 100%;
+            padding: 14px 18px;
+            background: var(--bg-primary);
+            border: 2px solid var(--glass-border);
+            border-radius: var(--radius-md);
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+        }
+    </style>
 </head>
 <body>
-    <div class="container events-container">
-        <div class="header">
+    <div class="bg-gradient"></div>
+    
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
             <a href="index.html" class="back-btn">←</a>
-            <div class="header-title">
-                <h1>📌 Eventi & Ricorrenze</h1>
+            <div class="header-content">
+                <h1 class="header-title">Eventi & Ricorrenze</h1>
+                <p class="header-subtitle">Gestisci compleanni, riunioni e festività</p>
             </div>
             <button class="theme-btn" onclick="EventsApp.toggleTheme()" title="Cambia tema">
                 <span id="theme-icon">☀️</span>
             </button>
+        </header>
+
+        <!-- Type Selector -->
+        <div class="type-selector">
+            <div class="type-card active" data-type="birthday" onclick="EventsApp.selectType('birthday')">
+                <span class="type-icon">🎂</span>
+                <span class="type-label">Compleanno</span>
+            </div>
+            <div class="type-card" data-type="meeting" onclick="EventsApp.selectType('meeting')">
+                <span class="type-icon">📅</span>
+                <span class="type-label">Riunione</span>
+            </div>
+            <div class="type-card" data-type="holiday" onclick="EventsApp.selectType('holiday')">
+                <span class="type-icon">🎉</span>
+                <span class="type-label">Festività</span>
+            </div>
         </div>
 
-        <!-- Add Event Form -->
-        <div class="event-form-card">
-            <div class="form-tabs">
-                <button class="tab-btn active" data-type="birthday" onclick="EventsApp.selectType('birthday')">
-                    🎂 Compleanno
-                </button>
-                <button class="tab-btn" data-type="meeting" onclick="EventsApp.selectType('meeting')">
-                    📅 Riunione
-                </button>
-                <button class="tab-btn" data-type="holiday" onclick="EventsApp.selectType('holiday')">
-                    🎉 Festività
-                </button>
-            </div>
-            
+        <!-- Form -->
+        <div class="form-card">
             <form id="event-form" onsubmit="EventsApp.addEvent(event)">
                 <div class="form-row">
-                    <div class="form-group flex-1">
-                        <label for="event-name">Nome</label>
+                    <div class="form-group">
+                        <label>Nome evento</label>
                         <input type="text" id="event-name" placeholder="Es. Compleanno Mario" required maxlength="50">
                     </div>
                 </div>
                 
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="event-date">Data</label>
+                        <label>Data</label>
                         <input type="date" id="event-date" required>
                     </div>
-                    <div class="form-group time-group" id="time-group" style="display: none;">
-                        <label for="event-time">Ora</label>
+                    <div class="form-group" id="time-group" style="display: none;">
+                        <label>Ora</label>
                         <input type="time" id="event-time">
                     </div>
-                    <div class="form-group duration-group" id="duration-group" style="display: none;">
-                        <label for="event-duration">Durata</label>
+                    <div class="form-group" id="duration-group" style="display: none;">
+                        <label>Durata</label>
                         <select id="event-duration">
-                            <option value="30">30 min</option>
+                            <option value="30">30 minuti</option>
                             <option value="60" selected>1 ora</option>
                             <option value="90">1.5 ore</option>
                             <option value="120">2 ore</option>
@@ -63,54 +686,22 @@
                     </div>
                 </div>
                 
-                <div class="form-row" id="recurring-row">
+                <div class="checkbox-row" id="recurring-row">
                     <label class="checkbox-label">
                         <input type="checkbox" id="event-recurring" checked>
                         <span>Ricorrenza annuale</span>
                     </label>
                 </div>
                 
-                <button type="submit" class="btn btn-primary btn-full">
-                    <span id="form-btn-icon">🎂</span> Aggiungi
+                <button type="submit" class="btn-submit">
+                    <span id="btn-icon">🎂</span>
+                    <span>Aggiungi Evento</span>
                 </button>
             </form>
         </div>
 
-        <!-- Events List -->
-        <div class="events-sections">
-            <!-- Birthdays -->
-            <div class="events-section" id="birthdays-section">
-                <div class="section-header">
-                    <h2>🎂 Compleanni</h2>
-                    <span class="section-count" id="birthdays-count">0</span>
-                </div>
-                <div class="events-list" id="birthdays-list">
-                    <p class="empty-message">Nessun compleanno inserito</p>
-                </div>
-            </div>
-
-            <!-- Meetings -->
-            <div class="events-section" id="meetings-section">
-                <div class="section-header">
-                    <h2>📅 Riunioni & Appuntamenti</h2>
-                    <span class="section-count" id="meetings-count">0</span>
-                </div>
-                <div class="events-list" id="meetings-list">
-                    <p class="empty-message">Nessuna riunione inserita</p>
-                </div>
-            </div>
-
-            <!-- Holidays -->
-            <div class="events-section" id="holidays-section">
-                <div class="section-header">
-                    <h2>🎉 Festività</h2>
-                    <span class="section-count" id="holidays-count">0</span>
-                </div>
-                <div class="events-list" id="holidays-list">
-                    <p class="empty-message">Nessuna festività inserita</p>
-                </div>
-            </div>
-        </div>
+        <!-- Events Sections -->
+        <div id="events-container"></div>
     </div>
 
     <script src="db.js"></script>
@@ -124,6 +715,9 @@
                 document.documentElement.setAttribute('data-theme', theme);
                 document.getElementById('theme-icon').textContent = theme === 'light' ? '🌙' : '☀️';
 
+                // Set default date to today
+                document.getElementById('event-date').valueAsDate = new Date();
+
                 await DB.init();
                 await this.loadEvents();
                 this.render();
@@ -136,36 +730,30 @@
             selectType(type) {
                 this.selectedType = type;
                 
-                // Update tabs
-                document.querySelectorAll('.tab-btn').forEach(btn => {
-                    btn.classList.toggle('active', btn.dataset.type === type);
+                // Update cards
+                document.querySelectorAll('.type-card').forEach(card => {
+                    card.classList.toggle('active', card.dataset.type === type);
                 });
                 
-                // Show/hide time input
+                // Show/hide fields
                 const timeGroup = document.getElementById('time-group');
+                const durationGroup = document.getElementById('duration-group');
                 const recurringRow = document.getElementById('recurring-row');
-                const formBtnIcon = document.getElementById('form-btn-icon');
+                const btnIcon = document.getElementById('btn-icon');
+                const nameInput = document.getElementById('event-name');
                 
                 if (type === 'meeting') {
                     timeGroup.style.display = 'block';
-                    document.getElementById('duration-group').style.display = 'block';
+                    durationGroup.style.display = 'block';
                     recurringRow.style.display = 'none';
-                    formBtnIcon.textContent = '📅';
-                } else {
-                    timeGroup.style.display = 'none';
-                    document.getElementById('duration-group').style.display = 'none';
-                    recurringRow.style.display = 'flex';
-                    formBtnIcon.textContent = type === 'birthday' ? '🎂' : '🎉';
-                }
-                
-                // Update placeholder
-                const nameInput = document.getElementById('event-name');
-                if (type === 'birthday') {
-                    nameInput.placeholder = 'Es. Compleanno Mario';
-                } else if (type === 'meeting') {
+                    btnIcon.textContent = '📅';
                     nameInput.placeholder = 'Es. Riunione progetto X';
                 } else {
-                    nameInput.placeholder = 'Es. Natale, Ferragosto';
+                    timeGroup.style.display = 'none';
+                    durationGroup.style.display = 'none';
+                    recurringRow.style.display = 'flex';
+                    btnIcon.textContent = type === 'birthday' ? '🎂' : '🎉';
+                    nameInput.placeholder = type === 'birthday' ? 'Es. Compleanno Mario' : 'Es. Natale, Ferragosto';
                 }
             },
 
@@ -199,6 +787,10 @@
                 // Reset form
                 document.getElementById('event-form').reset();
                 document.getElementById('event-recurring').checked = true;
+                document.getElementById('event-date').valueAsDate = new Date();
+                
+                // Show success feedback
+                this.showFeedback('Evento aggiunto!');
             },
 
             async deleteEvent(id) {
@@ -212,63 +804,154 @@
                 const meetings = this.events.filter(e => e.type === 'meeting');
                 const holidays = this.events.filter(e => e.type === 'holiday');
                 
-                this.renderList('birthdays', birthdays);
-                this.renderList('meetings', meetings);
-                this.renderList('holidays', holidays);
+                let html = '';
+                
+                // Birthdays
+                html += this.renderSection('🎂', 'Compleanni', birthdays, 'birthday');
+                
+                // Meetings
+                html += this.renderSection('📅', 'Riunioni', meetings, 'meeting');
+                
+                // Holidays
+                html += this.renderSection('🎉', 'Festività', holidays, 'holiday');
+                
+                document.getElementById('events-container').innerHTML = html;
             },
 
-            renderList(type, events) {
-                const list = document.getElementById(`${type}-list`);
-                const count = document.getElementById(`${type}-count`);
-                
-                count.textContent = events.length;
-                
+            renderSection(icon, title, events, type) {
                 if (events.length === 0) {
-                    list.innerHTML = '<p class="empty-message">Nessun elemento inserito</p>';
-                    return;
-                }
-                
-                // Sort by date
-                events.sort((a, b) => {
-                    const dateA = a.date.slice(5); // MM-DD
-                    const dateB = b.date.slice(5);
-                    return dateA.localeCompare(dateB);
-                });
-                
-                list.innerHTML = events.map(event => {
-                    const dateObj = new Date(event.date + 'T00:00:00');
-                    const day = dateObj.getDate();
-                    const month = dateObj.toLocaleDateString('it-IT', { month: 'short' });
-                    const year = dateObj.getFullYear();
-                    
-                    let dateDisplay = `${day} ${month}`;
-                    if (event.type === 'meeting' || !event.recurring) {
-                        dateDisplay += ` ${year}`;
-                    }
-                    if (event.time) {
-                        dateDisplay += ` • ${event.time}`;
-                    }
-                    if (event.duration) {
-                        const h = Math.floor(event.duration / 60);
-                        const m = event.duration % 60;
-                        dateDisplay += ` • ${h > 0 ? h + 'h' : ''}${m > 0 ? m + 'm' : ''}`;
-                    }
-                    
-                    const icon = event.type === 'birthday' ? '🎂' : 
-                                 event.type === 'meeting' ? '📅' : '🎉';
-                    
                     return `
-                        <div class="event-item" data-type="${event.type}">
-                            <span class="event-icon">${icon}</span>
-                            <div class="event-info">
-                                <span class="event-name">${this.escapeHtml(event.name)}</span>
-                                <span class="event-date">${dateDisplay}</span>
+                        <div class="section">
+                            <div class="section-header">
+                                <div class="section-title">
+                                    <span class="icon">${icon}</span>
+                                    <span>${title}</span>
+                                </div>
+                                <span class="section-count">0</span>
                             </div>
-                            ${event.recurring ? '<span class="recurring-badge">🔄</span>' : ''}
-                            <button class="event-delete" onclick="EventsApp.deleteEvent('${event.id}')" title="Elimina">×</button>
+                            <div class="empty-state">
+                                <div class="icon">${icon}</div>
+                                <p>Nessun ${title.toLowerCase().slice(0, -1)} inserito</p>
+                            </div>
                         </div>
                     `;
-                }).join('');
+                }
+                
+                // Sort by upcoming
+                const sorted = this.sortByUpcoming(events);
+                
+                return `
+                    <div class="section">
+                        <div class="section-header">
+                            <div class="section-title">
+                                <span class="icon">${icon}</span>
+                                <span>${title}</span>
+                            </div>
+                            <span class="section-count">${events.length}</span>
+                        </div>
+                        <div class="events-grid">
+                            ${sorted.map(e => this.renderEventCard(e)).join('')}
+                        </div>
+                    </div>
+                `;
+            },
+
+            renderEventCard(event) {
+                const icons = { birthday: '🎂', meeting: '📅', holiday: '🎉' };
+                const dateDisplay = this.formatDate(event);
+                const isUpcoming = this.isUpcoming(event);
+                
+                let metaHtml = `<span class="event-date-badge">📆 ${dateDisplay}</span>`;
+                
+                if (event.time) {
+                    metaHtml += `<span>• ⏰ ${event.time}</span>`;
+                }
+                
+                if (event.duration) {
+                    const h = Math.floor(event.duration / 60);
+                    const m = event.duration % 60;
+                    const durationStr = h > 0 ? (m > 0 ? `${h}h${m}m` : `${h}h`) : `${m}m`;
+                    metaHtml += `<span>• ${durationStr}</span>`;
+                }
+                
+                return `
+                    <div class="event-card" data-type="${event.type}">
+                        <div class="event-icon-wrapper">
+                            ${icons[event.type]}
+                        </div>
+                        <div class="event-content">
+                            <div class="event-name">${this.escapeHtml(event.name)}</div>
+                            <div class="event-meta">
+                                ${metaHtml}
+                                ${event.recurring ? '<span class="recurring-indicator">🔄 Annuale</span>' : ''}
+                                ${isUpcoming ? '<span class="upcoming-badge">⚡ Prossimo</span>' : ''}
+                            </div>
+                        </div>
+                        <button class="event-delete" onclick="EventsApp.deleteEvent('${event.id}')" title="Elimina">×</button>
+                    </div>
+                `;
+            },
+
+            sortByUpcoming(events) {
+                const today = new Date();
+                const todayMD = `${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                
+                return [...events].sort((a, b) => {
+                    const aMD = a.date.slice(5);
+                    const bMD = b.date.slice(5);
+                    
+                    // Adjust for year wrap
+                    const aAdj = aMD >= todayMD ? aMD : '13-' + aMD;
+                    const bAdj = bMD >= todayMD ? bMD : '13-' + bMD;
+                    
+                    return aAdj.localeCompare(bAdj);
+                });
+            },
+
+            isUpcoming(event) {
+                const today = new Date();
+                const eventDate = new Date(event.date);
+                
+                if (event.recurring || event.type === 'birthday') {
+                    // Check if within next 7 days (considering year)
+                    const thisYear = today.getFullYear();
+                    const checkDate = new Date(thisYear, eventDate.getMonth(), eventDate.getDate());
+                    
+                    if (checkDate < today) {
+                        checkDate.setFullYear(thisYear + 1);
+                    }
+                    
+                    const diffDays = Math.ceil((checkDate - today) / (1000 * 60 * 60 * 24));
+                    return diffDays >= 0 && diffDays <= 7;
+                } else {
+                    const diffDays = Math.ceil((eventDate - today) / (1000 * 60 * 60 * 24));
+                    return diffDays >= 0 && diffDays <= 7;
+                }
+            },
+
+            formatDate(event) {
+                const date = new Date(event.date + 'T00:00:00');
+                const day = date.getDate();
+                const months = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
+                const month = months[date.getMonth()];
+                
+                if (event.type === 'meeting' || !event.recurring) {
+                    return `${day} ${month} ${date.getFullYear()}`;
+                }
+                return `${day} ${month}`;
+            },
+
+            showFeedback(message) {
+                // Simple visual feedback
+                const btn = document.querySelector('.btn-submit');
+                const originalText = btn.innerHTML;
+                btn.innerHTML = `<span>✓</span><span>${message}</span>`;
+                btn.style.background = 'var(--success)';
+                
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.style.background = '';
+                }, 1500);
             },
 
             escapeHtml(text) {

@@ -6,6 +6,103 @@
     <title>Checklist - My Planner</title>
     <link rel="icon" type="image/png" href="img/MyPlanner.png">
     <link rel="stylesheet" href="styles-pages.css">
+    <style>
+        /* Fullscreen Editor Modal */
+        .editor-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--bg-primary);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .editor-modal.open {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .editor-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-subtle);
+        }
+        
+        .editor-title {
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+        
+        .editor-actions {
+            display: flex;
+            gap: 12px;
+        }
+        
+        .editor-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .editor-btn.cancel {
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+        }
+        
+        .editor-btn.save {
+            background: var(--accent-primary);
+            color: white;
+        }
+        
+        .editor-btn:hover {
+            transform: scale(1.02);
+        }
+        
+        .editor-body {
+            flex: 1;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .editor-textarea {
+            flex: 1;
+            width: 100%;
+            padding: 20px;
+            border: 2px solid var(--border-light);
+            border-radius: 16px;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 1.1rem;
+            line-height: 1.6;
+            resize: none;
+            transition: border-color 0.2s ease;
+        }
+        
+        .editor-textarea:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+        }
+        
+        .editor-textarea::placeholder {
+            color: var(--text-muted);
+        }
+    </style>
 </head>
 <body>
     <div class="container checklist-container">
@@ -16,11 +113,26 @@
         </div>
     </div>
 
+    <!-- Fullscreen Editor Modal -->
+    <div class="editor-modal" id="editor-modal">
+        <div class="editor-header">
+            <span class="editor-title">Modifica elemento</span>
+            <div class="editor-actions">
+                <button class="editor-btn cancel" onclick="ChecklistApp.closeEditor()">Annulla</button>
+                <button class="editor-btn save" onclick="ChecklistApp.saveEditor()">✓ Salva</button>
+            </div>
+        </div>
+        <div class="editor-body">
+            <textarea class="editor-textarea" id="editor-textarea" placeholder="Scrivi qui..."></textarea>
+        </div>
+    </div>
+
     <script src="db.js"></script>
     <script>
         const ChecklistApp = {
             task: null,
             taskId: null,
+            editingIndex: null,
 
             async init() {
                 const params = new URLSearchParams(window.location.search);
@@ -362,38 +474,32 @@
                 if (!this.task.checklist || !this.task.checklist[index]) return;
                 
                 const item = this.task.checklist[index];
-                const itemEl = document.querySelector(`.checklist-item[data-index="${index}"]`);
-                const textEl = itemEl.querySelector('.item-text');
+                this.editingIndex = index;
                 
-                // Sostituisci testo con input
-                const input = document.createElement('input');
-                input.type = 'text';
-                input.className = 'item-edit-input';
-                input.value = item.text;
-                input.maxLength = 100;
+                document.getElementById('editor-textarea').value = item.text;
+                document.getElementById('editor-modal').classList.add('open');
                 
-                const saveEdit = async () => {
-                    const newText = input.value.trim();
-                    if (newText && newText !== item.text) {
-                        this.task.checklist[index].text = newText;
-                        await this.saveTask();
-                    }
+                setTimeout(() => {
+                    document.getElementById('editor-textarea').focus();
+                }, 100);
+            },
+
+            closeEditor() {
+                document.getElementById('editor-modal').classList.remove('open');
+                this.editingIndex = null;
+            },
+
+            async saveEditor() {
+                if (this.editingIndex === null) return;
+                
+                const newText = document.getElementById('editor-textarea').value.trim();
+                if (newText && newText !== this.task.checklist[this.editingIndex].text) {
+                    this.task.checklist[this.editingIndex].text = newText;
+                    await this.saveTask();
                     this.render();
-                };
+                }
                 
-                input.addEventListener('blur', saveEdit);
-                input.addEventListener('keydown', (e) => {
-                    if (e.key === 'Enter') {
-                        e.preventDefault();
-                        input.blur();
-                    } else if (e.key === 'Escape') {
-                        this.render();
-                    }
-                });
-                
-                textEl.replaceWith(input);
-                input.focus();
-                input.select();
+                this.closeEditor();
             },
 
             async saveTask() {

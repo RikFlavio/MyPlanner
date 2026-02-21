@@ -3,10 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#0a0a0f">
     <title>My Planner - Smart Weekly Planner</title>
+    
+    <!-- Mobile redirect -->
+    <script>
+        (function() {
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) 
+                || window.innerWidth <= 768;
+            const forceDesktop = localStorage.getItem('myplanner-force-desktop') === 'true';
+            if (isMobile && !forceDesktop && !window.location.search.includes('desktop=true')) {
+                window.location.replace('mobile.html');
+            }
+        })();
+    </script>
     
     <!-- PWA Manifest -->
     <link rel="manifest" href="manifest.json">
@@ -400,5 +412,33 @@
     <script src="db.js"></script>
     <script src="algorithm.js"></script>
     <script src="app.js"></script>
+    <script>
+        // Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then((registration) => {
+                        console.log('SW registered:', registration.scope);
+                        
+                        // Check for updates
+                        registration.addEventListener('updatefound', () => {
+                            const newWorker = registration.installing;
+                            newWorker.addEventListener('statechange', () => {
+                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                    // New version available
+                                    if (confirm('Nuova versione disponibile! Aggiornare?')) {
+                                        newWorker.postMessage('skipWaiting');
+                                        window.location.reload();
+                                    }
+                                }
+                            });
+                        });
+                    })
+                    .catch((error) => {
+                        console.error('SW registration failed:', error);
+                    });
+            });
+        }
+    </script>
 </body>
 </html>

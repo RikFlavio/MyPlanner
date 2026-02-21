@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0a0a0f">
+    <title>My Planner</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" href="img/MyPlanner.png">
+    <link rel="apple-touch-icon" href="img/MyPlanner.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-card: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            --text-primary: #f0f0f5;
+            --text-secondary: #a0a0b0;
+            --text-muted: #606070;
+            --accent-primary: #6366f1;
+            --accent-secondary: #8b5cf6;
+            --accent-gradient: linear-gradient(135deg, #6366f1, #8b5cf6);
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --cat-work: #6366f1;
+            --cat-health: #22c55e;
+            --cat-home: #f59e0b;
+            --cat-personal: #ec4899;
+            --cat-social: #06b6d4;
+            --cat-other: #8b5cf6;
+        }
+
+        [data-theme="light"] {
+            --bg-primary: #f0f0f5;
+            --bg-secondary: #ffffff;
+            --bg-card: rgba(255, 255, 255, 0.7);
+            --glass-border: rgba(0, 0, 0, 0.08);
+            --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            --text-primary: #1a1a2e;
+            --text-secondary: #4a4a5a;
+            --text-muted: #8a8a9a;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            min-height: 100dvh;
+            overflow-x: hidden;
+        }
+
+        /* App Container */
+        .app {
+            min-height: 100vh;
+            min-height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            padding-top: env(safe-area-inset-top, 20px);
+            padding-bottom: calc(80px + env(safe-area-inset-bottom, 20px));
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .date-display {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        /* View Selector */
+        .view-selector {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 24px;
+            padding: 6px;
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+        }
+
+        .view-btn {
+            flex: 1;
+            padding: 12px 16px;
+            border: none;
+            background: transparent;
+            border-radius: 12px;
+            color: var(--text-muted);
+            font-family: inherit;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .view-btn.active {
+            background: var(--accent-primary);
+            color: white;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        /* Content Area */
+        .content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* Glass Card */
+        .card {
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: var(--glass-shadow);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .card-title {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .card-badge {
+            font-size: 0.75rem;
+            padding: 4px 10px;
+            background: var(--accent-gradient);
+            color: white;
+            border-radius: 20px;
+            font-weight: 500;
+        }
+
+        /* Task Item */
+        .task-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--glass-border);
+            border-radius: 14px;
+            margin-bottom: 10px;
+            transition: all 0.2s ease;
+        }
+
+        .task-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .task-item:active {
+            transform: scale(0.98);
+        }
+
+        .task-icon {
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            font-size: 1.3rem;
+            flex-shrink: 0;
+        }
+
+        .task-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .task-name {
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .task-meta {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .task-action {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--accent-gradient);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 1rem;
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: transform 0.2s ease;
+        }
+
+        .task-action:active {
+            transform: scale(0.9);
+        }
+
+        /* Status Badge */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .status-badge.pending {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--warning);
+        }
+
+        .status-badge.completed {
+            background: rgba(34, 197, 94, 0.15);
+            color: var(--success);
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted);
+        }
+
+        .empty-state .icon {
+            font-size: 3rem;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .empty-state p {
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        /* Quick Stats */
+        .stats-row {
+            display: flex;
+            gap: 12px;
+        }
+
+        .stat-card {
+            flex: 1;
+            text-align: center;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--glass-border);
+            border-radius: 14px;
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Event Item */
+        .event-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            margin-bottom: 8px;
+        }
+
+        .event-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .event-info {
+            flex: 1;
+        }
+
+        .event-name {
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+
+        .event-date {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        /* Bottom Navigation */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: space-around;
+            padding: 12px 20px;
+            padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--glass-border);
+            backdrop-filter: blur(20px);
+        }
+
+        .nav-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: 8px 16px;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-family: inherit;
+            font-size: 0.7rem;
+            cursor: pointer;
+            transition: color 0.2s ease;
+        }
+
+        .nav-btn .icon {
+            font-size: 1.4rem;
+        }
+
+        .nav-btn.active {
+            color: var(--accent-primary);
+        }
+
+        /* Settings Panel */
+        .settings-panel {
+            display: none;
+        }
+
+        .settings-panel.active {
+            display: block;
+        }
+
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            margin-bottom: 10px;
+            cursor: pointer;
+        }
+
+        .setting-item:active {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .setting-label {
+            font-size: 0.95rem;
+        }
+
+        .setting-value {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        /* Theme Toggle */
+        .theme-toggle {
+            width: 50px;
+            height: 28px;
+            background: var(--bg-card);
+            border: 1px solid var(--glass-border);
+            border-radius: 14px;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .theme-toggle::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 20px;
+            height: 20px;
+            background: var(--accent-gradient);
+            border-radius: 50%;
+            transition: transform 0.3s ease;
+        }
+
+        [data-theme="light"] .theme-toggle::after {
+            transform: translateX(22px);
+        }
+
+        /* Hidden */
+        .hidden {
+            display: none !important;
+        }
+
+        /* All Tasks View */
+        .task-category-section {
+            margin-bottom: 20px;
+        }
+
+        .category-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+            padding-left: 4px;
+        }
+
+        .category-icon {
+            font-size: 1.2rem;
+        }
+
+        .category-name {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">MyPlanner</div>
+            <div class="date-display" id="date-display"></div>
+        </header>
+
+        <!-- View Selector -->
+        <div class="view-selector">
+            <button class="view-btn active" data-view="today" onclick="App.setView('today')">Oggi</button>
+            <button class="view-btn" data-view="tasks" onclick="App.setView('tasks')">Task</button>
+            <button class="view-btn" data-view="events" onclick="App.setView('events')">Eventi</button>
+        </div>
+
+        <!-- Content -->
+        <div class="content" id="content">
+            <!-- Dynamic content here -->
+        </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <button class="nav-btn active" data-nav="home" onclick="App.setNav('home')">
+            <span class="icon">🏠</span>
+            <span>Home</span>
+        </button>
+        <button class="nav-btn" data-nav="calendar" onclick="App.setNav('calendar')">
+            <span class="icon">📅</span>
+            <span>Calendario</span>
+        </button>
+        <button class="nav-btn" data-nav="settings" onclick="App.setNav('settings')">
+            <span class="icon">⚙️</span>
+            <span>Impostazioni</span>
+        </button>
+    </nav>
+
+    <script src="db.js"></script>
+    <script>
+        const App = {
+            tasks: [],
+            schedule: [],
+            events: [],
+            currentView: 'today',
+            currentNav: 'home',
+
+            categories: {
+                work: { name: 'Lavoro', icon: '💼', color: 'var(--cat-work)' },
+                health: { name: 'Salute', icon: '💪', color: 'var(--cat-health)' },
+                home: { name: 'Casa', icon: '🏠', color: 'var(--cat-home)' },
+                personal: { name: 'Personale', icon: '👤', color: 'var(--cat-personal)' },
+                social: { name: 'Sociale', icon: '👥', color: 'var(--cat-social)' },
+                other: { name: 'Altro', icon: '📌', color: 'var(--cat-other)' }
+            },
+
+            async init() {
+                // Theme
+                const theme = localStorage.getItem('flowday-theme') || 'dark';
+                document.documentElement.setAttribute('data-theme', theme);
+
+                // Date display
+                this.updateDateDisplay();
+
+                // Load data
+                await DB.init();
+                await this.loadData();
+                
+                this.render();
+            },
+
+            updateDateDisplay() {
+                const now = new Date();
+                const options = { weekday: 'long', day: 'numeric', month: 'long' };
+                const formatted = now.toLocaleDateString('it-IT', options);
+                document.getElementById('date-display').textContent = formatted.charAt(0).toUpperCase() + formatted.slice(1);
+            },
+
+            async loadData() {
+                this.tasks = await DB.getAllTasks();
+                
+                // Get schedule for today and upcoming week
+                const today = new Date();
+                const nextWeek = new Date(today);
+                nextWeek.setDate(nextWeek.getDate() + 7);
+                
+                const startDate = this.formatDate(today);
+                const endDate = this.formatDate(nextWeek);
+                
+                this.schedule = await DB.getScheduleForDateRange(startDate, endDate);
+                this.events = await DB.getAllEvents();
+            },
+
+            setView(view) {
+                this.currentView = view;
+                document.querySelectorAll('.view-btn').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.view === view);
+                });
+                this.render();
+            },
+
+            setNav(nav) {
+                this.currentNav = nav;
+                document.querySelectorAll('.nav-btn').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.nav === nav);
+                });
+                
+                if (nav === 'calendar') {
+                    window.location.href = 'calendar.html';
+                } else if (nav === 'settings') {
+                    this.renderSettings();
+                } else {
+                    this.render();
+                }
+            },
+
+            render() {
+                if (this.currentNav === 'settings') {
+                    this.renderSettings();
+                    return;
+                }
+
+                switch (this.currentView) {
+                    case 'today':
+                        this.renderToday();
+                        break;
+                    case 'tasks':
+                        this.renderAllTasks();
+                        break;
+                    case 'events':
+                        this.renderEvents();
+                        break;
+                }
+            },
+
+            renderToday() {
+                const today = this.formatDate(new Date());
+                const todaySchedule = this.schedule.filter(s => s.date === today);
+                const pending = todaySchedule.filter(s => s.status !== 'completed' && s.status !== 'skipped');
+                const completed = todaySchedule.filter(s => s.status === 'completed');
+
+                // Get today's events
+                const todayEvents = this.getEventsForDate(today);
+
+                let html = '';
+
+                // Stats
+                html += `
+                    <div class="stats-row">
+                        <div class="stat-card">
+                            <div class="stat-value">${pending.length}</div>
+                            <div class="stat-label">Da fare</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">${completed.length}</div>
+                            <div class="stat-label">Completati</div>
+                        </div>
+                    </div>
+                `;
+
+                // Pending tasks
+                if (pending.length > 0) {
+                    html += `
+                        <div class="card">
+                            <div class="card-header">
+                                <span class="card-title">Da fare</span>
+                                <span class="card-badge">${pending.length}</span>
+                            </div>
+                            ${pending.map(s => this.renderTaskItem(s)).join('')}
+                        </div>
+                    `;
+                }
+
+                // Today's events
+                if (todayEvents.length > 0) {
+                    html += `
+                        <div class="card">
+                            <div class="card-header">
+                                <span class="card-title">Eventi di oggi</span>
+                            </div>
+                            ${todayEvents.map(e => this.renderEventItem(e)).join('')}
+                        </div>
+                    `;
+                }
+
+                // Completed
+                if (completed.length > 0) {
+                    html += `
+                        <div class="card">
+                            <div class="card-header">
+                                <span class="card-title">Completati</span>
+                            </div>
+                            ${completed.map(s => this.renderTaskItem(s, true)).join('')}
+                        </div>
+                    `;
+                }
+
+                // Empty state
+                if (pending.length === 0 && completed.length === 0 && todayEvents.length === 0) {
+                    html = `
+                        <div class="card">
+                            <div class="empty-state">
+                                <div class="icon">📅</div>
+                                <p>Nessuna attività per oggi</p>
+                                <p style="margin-top: 8px; font-size: 0.85rem;">Usa il desktop per pianificare</p>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                document.getElementById('content').innerHTML = html;
+            },
+
+            renderAllTasks() {
+                if (this.tasks.length === 0) {
+                    document.getElementById('content').innerHTML = `
+                        <div class="card">
+                            <div class="empty-state">
+                                <div class="icon">📋</div>
+                                <p>Nessun task creato</p>
+                                <p style="margin-top: 8px; font-size: 0.85rem;">Crea task dal desktop</p>
+                            </div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Group by category
+                const grouped = {};
+                this.tasks.forEach(t => {
+                    const cat = t.category || 'other';
+                    if (!grouped[cat]) grouped[cat] = [];
+                    grouped[cat].push(t);
+                });
+
+                let html = '';
+                Object.keys(grouped).forEach(cat => {
+                    const catInfo = this.categories[cat] || this.categories.other;
+                    html += `
+                        <div class="task-category-section">
+                            <div class="category-header">
+                                <span class="category-icon">${catInfo.icon}</span>
+                                <span class="category-name">${catInfo.name}</span>
+                            </div>
+                            <div class="card" style="padding: 12px;">
+                                ${grouped[cat].map(t => this.renderTaskCard(t, catInfo)).join('')}
+                            </div>
+                        </div>
+                    `;
+                });
+
+                document.getElementById('content').innerHTML = html;
+            },
+
+            renderTaskCard(task, catInfo) {
+                const checklist = task.checklist || [];
+                const completed = checklist.filter(i => i.completed).length;
+                const total = checklist.length;
+
+                return `
+                    <div class="task-item" onclick="window.location.href='checklist.html?taskId=${task.id}'">
+                        <div class="task-icon" style="background: ${catInfo.color}20; color: ${catInfo.color}">
+                            ${catInfo.icon}
+                        </div>
+                        <div class="task-info">
+                            <div class="task-name">${this.escapeHtml(task.name)}</div>
+                            <div class="task-meta">${total > 0 ? `${completed}/${total} completati` : `${task.defaultDuration} min`}</div>
+                        </div>
+                        <button class="task-action" onclick="event.stopPropagation(); window.location.href='timer.html?taskId=${task.id}'">
+                            ⏱️
+                        </button>
+                    </div>
+                `;
+            },
+
+            renderTaskItem(scheduled, isCompleted = false) {
+                const task = this.tasks.find(t => t.id === scheduled.taskId);
+                if (!task) return '';
+
+                const cat = this.categories[task.category] || this.categories.other;
+                const time = scheduled.actualStartTime || scheduled.startTime;
+
+                return `
+                    <div class="task-item" onclick="window.location.href='checklist.html?taskId=${task.id}'" style="${isCompleted ? 'opacity: 0.6;' : ''}">
+                        <div class="task-icon" style="background: ${cat.color}20; color: ${cat.color}">
+                            ${cat.icon}
+                        </div>
+                        <div class="task-info">
+                            <div class="task-name">${this.escapeHtml(task.name)}</div>
+                            <div class="task-meta">${time} • ${scheduled.duration || task.defaultDuration} min</div>
+                        </div>
+                        ${!isCompleted ? `
+                            <button class="task-action" onclick="event.stopPropagation(); window.location.href='timer.html?taskId=${task.id}'">
+                                ▶️
+                            </button>
+                        ` : `
+                            <span style="color: var(--success); font-size: 1.2rem;">✓</span>
+                        `}
+                    </div>
+                `;
+            },
+
+            renderEvents() {
+                const upcoming = this.getUpcomingEvents();
+
+                if (upcoming.length === 0) {
+                    document.getElementById('content').innerHTML = `
+                        <div class="card">
+                            <div class="empty-state">
+                                <div class="icon">🎉</div>
+                                <p>Nessun evento in programma</p>
+                            </div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                let html = `
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title">Prossimi eventi</span>
+                        </div>
+                        ${upcoming.map(e => this.renderEventItem(e)).join('')}
+                    </div>
+                `;
+
+                document.getElementById('content').innerHTML = html;
+            },
+
+            renderEventItem(event) {
+                const colors = {
+                    birthday: '#ec4899',
+                    meeting: '#3b82f6',
+                    holiday: '#f59e0b'
+                };
+                const icons = {
+                    birthday: '🎂',
+                    meeting: '📅',
+                    holiday: '🎉'
+                };
+
+                return `
+                    <div class="event-item">
+                        <div class="event-dot" style="background: ${colors[event.type] || '#8b5cf6'}"></div>
+                        <div class="event-info">
+                            <div class="event-name">${icons[event.type] || '📌'} ${this.escapeHtml(event.name)}</div>
+                            <div class="event-date">${this.formatDateDisplay(event.date)}${event.time ? ' • ' + event.time : ''}</div>
+                        </div>
+                    </div>
+                `;
+            },
+
+            renderSettings() {
+                const theme = document.documentElement.getAttribute('data-theme');
+
+                document.getElementById('content').innerHTML = `
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title">Impostazioni</span>
+                        </div>
+                        
+                        <div class="setting-item" onclick="App.toggleTheme()">
+                            <span class="setting-label">Tema scuro</span>
+                            <div class="theme-toggle"></div>
+                        </div>
+                        
+                        <div class="setting-item" onclick="window.location.href='events.html'">
+                            <span class="setting-label">Gestisci eventi</span>
+                            <span class="setting-value">→</span>
+                        </div>
+                        
+                        <div class="setting-item" onclick="window.location.href='stats.html'">
+                            <span class="setting-label">Statistiche</span>
+                            <span class="setting-value">→</span>
+                        </div>
+                        
+                        <div class="setting-item" onclick="window.location.href='index.html'">
+                            <span class="setting-label">Versione Desktop</span>
+                            <span class="setting-value">→</span>
+                        </div>
+                    </div>
+                    
+                    <div class="card" style="margin-top: 16px; text-align: center; padding: 24px;">
+                        <div style="font-size: 2rem; margin-bottom: 8px;">📱</div>
+                        <div style="color: var(--text-muted); font-size: 0.85rem;">My Planner Mobile</div>
+                        <div style="color: var(--text-muted); font-size: 0.75rem; margin-top: 4px;">v1.0</div>
+                    </div>
+                `;
+            },
+
+            toggleTheme() {
+                const current = document.documentElement.getAttribute('data-theme');
+                const newTheme = current === 'light' ? 'dark' : 'light';
+                document.documentElement.setAttribute('data-theme', newTheme);
+                localStorage.setItem('flowday-theme', newTheme);
+                this.renderSettings();
+            },
+
+            getEventsForDate(dateStr) {
+                return this.events.filter(event => {
+                    if (event.type === 'birthday' || (event.type === 'holiday' && event.recurring)) {
+                        return event.date.slice(5) === dateStr.slice(5);
+                    }
+                    return event.date === dateStr;
+                });
+            },
+
+            getUpcomingEvents() {
+                const today = new Date();
+                const upcoming = [];
+                
+                // Check next 30 days
+                for (let i = 0; i < 30; i++) {
+                    const date = new Date(today);
+                    date.setDate(date.getDate() + i);
+                    const dateStr = this.formatDate(date);
+                    
+                    const events = this.getEventsForDate(dateStr);
+                    events.forEach(e => {
+                        upcoming.push({ ...e, displayDate: dateStr });
+                    });
+                }
+                
+                return upcoming.slice(0, 10);
+            },
+
+            formatDate(d) {
+                return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            },
+
+            formatDateDisplay(dateStr) {
+                const months = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
+                const [y, m, d] = dateStr.split('-');
+                return `${parseInt(d)} ${months[parseInt(m) - 1]}`;
+            },
+
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', () => App.init());
+    </script>
+</body>
+</html>
