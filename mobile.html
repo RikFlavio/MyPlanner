@@ -243,6 +243,202 @@
             transform: scale(0.9);
         }
 
+        /* ================================
+           Fullscreen Task Cards (Swipeable)
+           ================================ */
+        .task-carousel {
+            scroll-snap-type: y mandatory;
+            overflow-y: auto;
+            height: calc(100vh - 220px);
+            padding-bottom: 20px;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .task-fullcard {
+            scroll-snap-align: start;
+            min-height: calc(100vh - 260px);
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 28px 24px;
+            margin-bottom: 16px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+
+        .task-fullcard.completed {
+            opacity: 0.6;
+            min-height: auto;
+        }
+
+        .task-fullcard-header {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 20px;
+        }
+
+        .task-fullcard-icon {
+            width: 56px;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 16px;
+            font-size: 1.6rem;
+            flex-shrink: 0;
+        }
+
+        .task-fullcard-meta {
+            flex: 1;
+        }
+
+        .task-fullcard-category {
+            font-size: 0.8rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            opacity: 0.7;
+        }
+
+        .task-fullcard-time {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-top: 2px;
+        }
+
+        .task-fullcard-name {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            line-height: 1.4;
+            margin-bottom: 20px;
+            word-wrap: break-word;
+        }
+
+        .task-fullcard-checklist {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+
+        .task-fullcard-checklist-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 14px 16px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            margin-bottom: 10px;
+            font-size: 1rem;
+            line-height: 1.5;
+            color: var(--text-primary);
+        }
+
+        .task-fullcard-checklist-item.done {
+            opacity: 0.5;
+            text-decoration: line-through;
+        }
+
+        .task-fullcard-checklist-item .check {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid var(--glass-border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 0.8rem;
+        }
+
+        .task-fullcard-checklist-item.done .check {
+            background: var(--success);
+            border-color: var(--success);
+            color: white;
+        }
+
+        .task-fullcard-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: auto;
+        }
+
+        .task-fullcard-btn {
+            flex: 1;
+            padding: 16px 20px;
+            border: none;
+            border-radius: 14px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .task-fullcard-btn.primary {
+            background: var(--accent-gradient);
+            color: white;
+            box-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
+        }
+
+        .task-fullcard-btn.secondary {
+            background: var(--bg-card);
+            border: 1px solid var(--glass-border);
+            color: var(--text-primary);
+        }
+
+        .task-fullcard-btn:active {
+            transform: scale(0.98);
+        }
+
+        .task-fullcard-progress {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .task-fullcard-progress-bar {
+            flex: 1;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .task-fullcard-progress-fill {
+            height: 100%;
+            background: var(--accent-gradient);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+
+        .task-fullcard-progress-text {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+
+        .scroll-hint {
+            text-align: center;
+            padding: 16px;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+
         /* Status Badge */
         .status-badge {
             display: inline-flex;
@@ -620,7 +816,7 @@
 
                 let html = '';
 
-                // Stats
+                // Stats compatte in alto
                 html += `
                     <div class="stats-row">
                         <div class="stat-card">
@@ -634,39 +830,35 @@
                     </div>
                 `;
 
-                // Pending tasks
-                if (pending.length > 0) {
-                    html += `
-                        <div class="card">
-                            <div class="card-header">
-                                <span class="card-title">Da fare</span>
-                                <span class="card-badge">${pending.length}</span>
-                            </div>
-                            ${pending.map(s => this.renderTaskItem(s)).join('')}
-                        </div>
-                    `;
+                // Task cards fullscreen swipeable
+                if (pending.length > 0 || completed.length > 0) {
+                    html += `<div class="task-carousel">`;
+                    
+                    // Pending tasks - fullscreen cards
+                    pending.forEach((s, index) => {
+                        html += this.renderFullTaskCard(s, index, pending.length, false);
+                    });
+                    
+                    // Completed tasks - compatte
+                    completed.forEach(s => {
+                        html += this.renderFullTaskCard(s, 0, 0, true);
+                    });
+                    
+                    if (pending.length > 1) {
+                        html += `<div class="scroll-hint">↓ Scorri per altri task</div>`;
+                    }
+                    
+                    html += `</div>`;
                 }
 
-                // Today's events
+                // Today's events (se ci sono)
                 if (todayEvents.length > 0) {
                     html += `
-                        <div class="card">
+                        <div class="card" style="margin-top: 16px;">
                             <div class="card-header">
                                 <span class="card-title">Eventi di oggi</span>
                             </div>
                             ${todayEvents.map(e => this.renderEventItem(e)).join('')}
-                        </div>
-                    `;
-                }
-
-                // Completed
-                if (completed.length > 0) {
-                    html += `
-                        <div class="card">
-                            <div class="card-header">
-                                <span class="card-title">Completati</span>
-                            </div>
-                            ${completed.map(s => this.renderTaskItem(s, true)).join('')}
                         </div>
                     `;
                 }
@@ -685,6 +877,83 @@
                 }
 
                 document.getElementById('content').innerHTML = html;
+            },
+
+            renderFullTaskCard(scheduled, index, total, isCompleted) {
+                const task = this.tasks.find(t => t.id === scheduled.taskId);
+                if (!task) return '';
+
+                const cat = this.categories[task.category] || this.categories.other;
+                const time = scheduled.actualStartTime || scheduled.startTime;
+                const checklist = task.checklist || [];
+                const completedItems = checklist.filter(i => i.completed).length;
+                const progress = checklist.length > 0 ? Math.round((completedItems / checklist.length) * 100) : 0;
+
+                if (isCompleted) {
+                    // Card compatta per completati
+                    return `
+                        <div class="task-fullcard completed">
+                            <div class="task-fullcard-header">
+                                <div class="task-fullcard-icon" style="background: ${cat.color}20; color: ${cat.color}">
+                                    ${cat.icon}
+                                </div>
+                                <div class="task-fullcard-meta">
+                                    <div class="task-fullcard-category" style="color: ${cat.color}">${cat.name}</div>
+                                    <div class="task-fullcard-time">✓ Completato</div>
+                                </div>
+                            </div>
+                            <div class="task-fullcard-name">${this.escapeHtml(task.name)}</div>
+                        </div>
+                    `;
+                }
+
+                // Card fullscreen per pending
+                let checklistHtml = '';
+                if (checklist.length > 0) {
+                    checklistHtml = `
+                        <div class="task-fullcard-progress">
+                            <div class="task-fullcard-progress-bar">
+                                <div class="task-fullcard-progress-fill" style="width: ${progress}%"></div>
+                            </div>
+                            <span class="task-fullcard-progress-text">${completedItems}/${checklist.length}</span>
+                        </div>
+                        <div class="task-fullcard-checklist">
+                            ${checklist.map(item => `
+                                <div class="task-fullcard-checklist-item ${item.completed ? 'done' : ''}">
+                                    <span class="check">${item.completed ? '✓' : ''}</span>
+                                    <span>${this.escapeHtml(item.text)}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                }
+
+                return `
+                    <div class="task-fullcard">
+                        <div class="task-fullcard-header">
+                            <div class="task-fullcard-icon" style="background: ${cat.color}20; color: ${cat.color}">
+                                ${cat.icon}
+                            </div>
+                            <div class="task-fullcard-meta">
+                                <div class="task-fullcard-category" style="color: ${cat.color}">${cat.name}</div>
+                                <div class="task-fullcard-time">⏰ ${time} • ${scheduled.duration || task.defaultDuration} min</div>
+                            </div>
+                        </div>
+                        
+                        <div class="task-fullcard-name">${this.escapeHtml(task.name)}</div>
+                        
+                        ${checklistHtml}
+                        
+                        <div class="task-fullcard-actions">
+                            <button class="task-fullcard-btn secondary" onclick="window.location.href='checklist.html?taskId=${task.id}'">
+                                📋 Checklist
+                            </button>
+                            <button class="task-fullcard-btn primary" onclick="window.location.href='timer.html?taskId=${task.id}'">
+                                ▶️ Avvia
+                            </button>
+                        </div>
+                    </div>
+                `;
             },
 
             renderAllTasks() {
