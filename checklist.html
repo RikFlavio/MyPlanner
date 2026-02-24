@@ -228,10 +228,37 @@
             border-radius: 14px;
             margin-bottom: 10px;
             transition: all 0.2s ease;
+            cursor: grab;
+        }
+
+        .list-item:active {
+            cursor: grabbing;
+        }
+
+        .list-item.dragging {
+            opacity: 0.5;
+            transform: scale(1.02);
+        }
+
+        .list-item.drag-over {
+            border-color: var(--accent-primary);
+            background: rgba(99, 102, 241, 0.1);
         }
 
         .list-item:hover {
             background: rgba(255, 255, 255, 0.08);
+        }
+
+        .drag-handle {
+            color: var(--text-muted);
+            font-size: 1rem;
+            cursor: grab;
+            padding: 4px;
+            user-select: none;
+        }
+
+        .drag-handle:active {
+            cursor: grabbing;
         }
 
         .list-item.completed {
@@ -660,6 +687,7 @@
             touchStartY: 0,
             touchDeltaY: 0,
             isSwiping: false,
+            draggedIndex: null,
 
             categories: {
                 work: { name: 'Lavoro', icon: '💼', color: 'var(--cat-work)' },
@@ -693,6 +721,7 @@
                 await this.loadTask();
                 this.render();
                 this.setupSwipeHandlers();
+                this.setupDragHandlers();
             },
 
             async loadTask() {
@@ -790,7 +819,8 @@
                 }
 
                 return checklist.map((item, index) => `
-                    <div class="list-item ${item.completed ? 'completed' : ''}">
+                    <div class="list-item ${item.completed ? 'completed' : ''}" draggable="true" data-index="${index}">
+                        <span class="drag-handle">⋮⋮</span>
                         <div class="item-checkbox" onclick="App.toggleItem(${index})">
                             ${item.completed ? '✓' : ''}
                         </div>
@@ -863,6 +893,64 @@
                 carousel.addEventListener('touchstart', (e) => this.onTouchStart(e), { passive: true });
                 carousel.addEventListener('touchmove', (e) => this.onTouchMove(e), { passive: false });
                 carousel.addEventListener('touchend', (e) => this.onTouchEnd(e), { passive: true });
+            },
+
+            setupDragHandlers() {
+                const items = document.querySelectorAll('.list-item[draggable="true"]');
+                
+                items.forEach(item => {
+                    item.addEventListener('dragstart', (e) => this.onDragStart(e));
+                    item.addEventListener('dragend', (e) => this.onDragEnd(e));
+                    item.addEventListener('dragover', (e) => this.onDragOver(e));
+                    item.addEventListener('dragleave', (e) => this.onDragLeave(e));
+                    item.addEventListener('drop', (e) => this.onDrop(e));
+                });
+            },
+
+            onDragStart(e) {
+                this.draggedIndex = parseInt(e.target.closest('.list-item').dataset.index);
+                e.target.closest('.list-item').classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+            },
+
+            onDragEnd(e) {
+                e.target.closest('.list-item').classList.remove('dragging');
+                document.querySelectorAll('.list-item').forEach(item => {
+                    item.classList.remove('drag-over');
+                });
+                this.draggedIndex = null;
+            },
+
+            onDragOver(e) {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                const item = e.target.closest('.list-item');
+                if (item && parseInt(item.dataset.index) !== this.draggedIndex) {
+                    item.classList.add('drag-over');
+                }
+            },
+
+            onDragLeave(e) {
+                e.target.closest('.list-item')?.classList.remove('drag-over');
+            },
+
+            async onDrop(e) {
+                e.preventDefault();
+                const targetItem = e.target.closest('.list-item');
+                if (!targetItem) return;
+
+                const targetIndex = parseInt(targetItem.dataset.index);
+                if (targetIndex === this.draggedIndex) return;
+
+                // Riordina checklist
+                const checklist = this.task.checklist;
+                const [movedItem] = checklist.splice(this.draggedIndex, 1);
+                checklist.splice(targetIndex, 0, movedItem);
+
+                await this.saveTask();
+                this.render();
+                this.setupSwipeHandlers();
+                this.setupDragHandlers();
             },
 
             onTouchStart(e) {
@@ -964,6 +1052,7 @@
                 input.value = '';
                 this.render();
                 this.setupSwipeHandlers();
+                this.setupDragHandlers();
             },
 
             async deleteItem(index) {
@@ -973,6 +1062,7 @@
                 await this.saveTask();
                 this.render();
                 this.setupSwipeHandlers();
+                this.setupDragHandlers();
             },
 
             editItem(index) {
